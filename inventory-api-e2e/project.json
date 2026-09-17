@@ -1,0 +1,17 @@
+{
+  "name": "inventory-api-e2e",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "implicitDependencies": ["inventory-api"],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
+      "dependsOn": ["inventory-api:build", "inventory-api:serve"],
+      "options": {
+        "jestConfig": "inventory-api-e2e/jest.config.cts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

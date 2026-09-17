@@ -1,0 +1,17 @@
+{
+  "name": "budget-api-e2e",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "implicitDependencies": ["budget-api"],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
+      "dependsOn": ["budget-api:build", "budget-api:serve"],
+      "options": {
+        "jestConfig": "budget-api-e2e/jest.config.cts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

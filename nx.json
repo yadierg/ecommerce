@@ -38,7 +38,13 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/ecommerce-api-e2e/**/*"]
+      "exclude": [
+        "apps/ecommerce-api-e2e/**/*",
+        "store-api-e2e/**/*",
+        "inventory-api-e2e/**/*",
+        "budget-api-e2e/**/*",
+        "admin-api-e2e/**/*"
+      ]
     }
   ]
 }
