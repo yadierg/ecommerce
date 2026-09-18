@@ -2,24 +2,27 @@
   "compileOnSave": false,
   "compilerOptions": {
     "rootDir": ".",
+    "ignoreDeprecations": "6.0",
     "sourceMap": true,
     "declaration": false,
-    "moduleResolution": "bundler",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "target": "es2015",
-    "module": "esnext",
-    "lib": ["es2020", "dom"],
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "strict": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "paths": {
-      "@ecommerce/auth": ["./auth/src/index.ts"],
-      "@ecommerce/core": ["./core/src/index.ts"],
-      "@ecommerce/database": ["./database/src/index.ts"],
-      "@ecommerce/shared": ["./shared/src/index.ts"],
-      "@ecommerce/events": ["./events/src/index.ts"]
+      "@ecommerce/auth": ["./libs/auth/src/index.ts"],
+      "@ecommerce/core": ["./libs/core/src/index.ts"],
+      "@ecommerce/database": ["./libs/database/src/index.ts"],
+      "@ecommerce/shared": ["./libs/shared/src/index.ts"],
+      "@ecommerce/events": ["./libs/events/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

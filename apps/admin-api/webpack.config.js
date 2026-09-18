@@ -1,13 +1,10 @@
+// apps/admin-api/webpack.config.js
 const { NxAppWebpackPlugin } = require('@nx/webpack/app-plugin');
 const { join } = require('path');
 
 module.exports = {
   output: {
-    path: join(__dirname, '../dist/admin-api'),
-    clean: true,
-    ...(process.env.NODE_ENV !== 'production' && {
-      devtoolModuleFilenameTemplate: '[absolute-resource-path]',
-    }),
+    path: join(__dirname, '../dist'),
   },
   plugins: [
     new NxAppWebpackPlugin({
@@ -15,11 +12,10 @@ module.exports = {
       compiler: 'tsc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
-      assets: ['./src/assets'],
+      // ❌ ELIMINAR la línea 'assets' si existe
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
-      sourceMap: true,
     }),
   ],
 };
