@@ -1,8 +1,6 @@
-// apps/admin-api/src/modules/roles/roles.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Role } from '../../entities/role.entity';
-import { Permission } from '../../entities/permission.entity';
+import { Role, Permission } from '@ecommerce/core';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 import { RolesSeeder } from './roles.seeder';

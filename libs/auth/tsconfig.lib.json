@@ -1,22 +1,27 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../dist/out-tsc",
+    "outDir": "../../dist/libs/auth",
+    "rootDir": "src",
     "declaration": true,
     "types": ["node"],
-    "target": "es2021",
+    "target": "es2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "strictPropertyInitialization": false,
+    "ignoreDeprecations": "6.0",
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "../../dist/libs/auth/.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
   "exclude": [
     "jest.config.ts",
-    "jest.config.cts",
     "src/**/*.spec.ts",
     "src/**/*.test.ts"
   ]

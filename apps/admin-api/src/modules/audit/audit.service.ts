@@ -1,8 +1,12 @@
 // apps/admin-api/src/modules/audit/audit.service.ts
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,        // ← AGREGAR
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, FindOptionsWhere } from 'typeorm';
-import { AuditLog } from '../../entities/audit-log.entity';
+import { AuditLog } from '@ecommerce/core';
 import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 

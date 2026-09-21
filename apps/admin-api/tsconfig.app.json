@@ -1,8 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../dist/out-tsc",
-    "rootDir": "src",
+    "outDir": "../../dist/apps/admin-api",
+    "rootDir": "../..",
     "module": "commonjs",
     "moduleResolution": "node",
     "types": ["node"],

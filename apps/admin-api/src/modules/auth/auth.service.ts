@@ -13,15 +13,18 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 
-import { User } from '../../entities/user.entity';
-import { Session } from '../../entities/session.entity';
-import { Role } from '../../entities/role.entity';
-import { AuditService } from '../audit/audit.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import {
+  User,
+  Session,
+  Role,
+  NotificationType,      // ← AGREGAR
+  NotificationPriority,  // ← AGREGAR
+} from '@ecommerce/core';
 
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationPriority, NotificationType } from '../../entities/notification.entity';
+import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';  // ← AGREGAR
+import { LoginDto } from './dto/login.dto';           // ← AGREGAR
+import { RegisterDto } from './dto/register.dto';     // ← AGREGAR
 
 @Injectable()
 export class AuthService {
@@ -37,9 +40,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsService: NotificationsService,  // ← AGREGAR
   ) {}
-
   // ============================================
   // LOGIN
   // ============================================

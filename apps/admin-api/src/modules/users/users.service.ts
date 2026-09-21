@@ -1,17 +1,11 @@
 // apps/admin-api/src/modules/users/users.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/user.entity';
+import { User, NotificationType, NotificationPriority } from '@ecommerce/core';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationPriority, NotificationType } from '../../entities/notification.entity';
 
 @Injectable()
 export class UsersService {

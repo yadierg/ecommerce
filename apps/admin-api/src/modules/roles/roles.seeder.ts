@@ -2,8 +2,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role } from '../../entities/role.entity';
-import { Permission } from '../../entities/permission.entity';
+import { Role, Permission } from '@ecommerce/core';
 
 @Injectable()
 export class RolesSeeder implements OnModuleInit {

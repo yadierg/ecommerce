@@ -1,4 +1,4 @@
-// apps/admin-api/src/common/guards/roles.guard.ts
+// libs/auth/src/lib/guards/roles.guard.ts
 import {
   Injectable,
   CanActivate,

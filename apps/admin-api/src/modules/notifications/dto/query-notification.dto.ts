@@ -1,18 +1,8 @@
 // apps/admin-api/src/modules/notifications/dto/query-notification.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsBoolean,
-  IsEnum,
-  IsNumber,
-  Min,
-} from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsEnum, IsNumber, Min } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import {
-  NotificationType,
-  NotificationPriority,
-} from '../../../entities/notification.entity';
+import { NotificationType, NotificationPriority } from '@ecommerce/core';
 
 export class QueryNotificationDto {
   @ApiProperty({ required: false })

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Permission } from '../../entities/permission.entity';
+import { Permission } from '@ecommerce/core';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 
 @Injectable()

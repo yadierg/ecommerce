@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { Role } from '../../entities/role.entity';
-import { Permission } from '../../entities/permission.entity';
+import { Role } from '@ecommerce/core';
+import { Permission } from '@ecommerce/core';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 

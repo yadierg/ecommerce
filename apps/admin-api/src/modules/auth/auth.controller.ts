@@ -7,7 +7,6 @@ import {
   HttpCode,
   HttpStatus,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,12 +15,11 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { Public, CurrentUser } from '@ecommerce/auth';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { Public } from '../../common/decorators/public.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { LoginDto } from './dto/login.dto';                 // ← AGREGAR
+import { RegisterDto } from './dto/register.dto';           // ← AGREGAR
+import { RefreshTokenDto } from './dto/refresh-token.dto';  // ← AGREGAR
 
 @ApiTags('auth')
 @Controller('auth')
@@ -32,8 +30,6 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Iniciar sesión' })
-  @ApiResponse({ status: 200, description: 'Login exitoso' })
-  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
   login(@Body() loginDto: LoginDto, @Req() req: Request) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
@@ -43,8 +39,6 @@ export class AuthController {
   @Public()
   @Post('register')
   @ApiOperation({ summary: 'Registrar nuevo usuario' })
-  @ApiResponse({ status: 201, description: 'Usuario registrado' })
-  @ApiResponse({ status: 409, description: 'Email ya registrado' })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }

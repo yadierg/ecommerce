@@ -1,4 +1,4 @@
-// apps/admin-api/src/entities/user.entity.ts
+// libs/core/src/lib/entities/user.entity.ts
 import {
   Entity,
   Column,
@@ -17,26 +17,26 @@ import { Role } from './role.entity';
 @Entity({ name: 'users' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
   @Index()
-  email: string;
+  email!: string;
 
   @Column({ select: false })
-  password: string;
+  password!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ default: 'user' })
-  role: string; // Campo legacy (mantener por compatibilidad)
+  role!: string; // Campo legacy (mantener por compatibilidad)
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @Column({ nullable: true, name: 'last_login' })
-  lastLogin: Date;
+  lastLogin!: Date;
 
   // ✅ NUEVA RELACIÓN
   @ManyToMany(() => Role, (role) => role.users, { eager: true })
@@ -45,13 +45,13 @@ export class User {
     joinColumn: { name: 'user_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
-  roles: Role[];
+  roles!: Role[];
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @BeforeInsert()
   @BeforeUpdate()

@@ -1,13 +1,15 @@
 // apps/admin-api/src/config/database.config.ts
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { User } from '../entities/user.entity';
-import { AuditLog } from '../entities/audit-log.entity';
-import { Setting } from '../entities/setting.entity';
-import { Role } from '../entities/role.entity';
-import { Permission } from '../entities/permission.entity';
-import { Session } from '../entities/session.entity';
-import { Notification } from '../entities/notification.entity';
+import {
+  User,
+  AuditLog,
+  Setting,
+  Role,
+  Permission,
+  Session,
+  Notification,
+} from '@ecommerce/core';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -25,9 +27,7 @@ export const getDatabaseConfig = (
   migrationsTableName: 'migrations',
 
   synchronize: configService.get('NODE_ENV') === 'development',
-
   logging: configService.get('NODE_ENV') === 'development' ? 'all' : ['error'],
-
   ssl: configService.get('NODE_ENV') === 'production'
     ? { rejectUnauthorized: false }
     : false,

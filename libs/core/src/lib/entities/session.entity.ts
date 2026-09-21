@@ -1,4 +1,4 @@
-// apps/admin-api/src/entities/session.entity.ts
+// libs/core/src/lib/entities/session.entity.ts
 import {
   Entity,
   Column,
@@ -13,35 +13,35 @@ import { User } from './user.entity';
 @Entity({ name: 'sessions' })
 export class Session {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'user_id' })
   @Index()
-  userId: string;
+  userId!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @Column({ name: 'refresh_token', unique: true })
   @Index()
-  refreshToken: string;
+  refreshToken!: string;
 
   @Column({ name: 'ip_address', nullable: true })
-  ipAddress: string;
+  ipAddress!: string;
 
   @Column({ name: 'user_agent', nullable: true })
-  userAgent: string;
+  userAgent!: string;
 
   @Column({ name: 'expires_at' })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Column({ default: true, name: 'is_active' })
-  isActive: boolean;
+  isActive!: boolean;
 
   @Column({ name: 'last_used_at', nullable: true })
-  lastUsedAt: Date;
+  lastUsedAt!: Date;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 }

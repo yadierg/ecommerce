@@ -1,3 +1,4 @@
+// tsconfig.base.json
 {
   "compileOnSave": false,
   "compilerOptions": {
@@ -15,14 +16,16 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "strict": false,
+    "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "baseUrl": ".",
     "paths": {
-      "@ecommerce/auth": ["./libs/auth/src/index.ts"],
-      "@ecommerce/core": ["./libs/core/src/index.ts"],
-      "@ecommerce/database": ["./libs/database/src/index.ts"],
-      "@ecommerce/shared": ["./libs/shared/src/index.ts"],
-      "@ecommerce/events": ["./libs/events/src/index.ts"]
+      "@ecommerce/auth": ["libs/auth/src/index.ts"],
+      "@ecommerce/core": ["libs/core/src/index.ts"],
+      "@ecommerce/database": ["libs/database/src/index.ts"],
+      "@ecommerce/shared": ["libs/shared/src/index.ts"],
+      "@ecommerce/events": ["libs/events/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -1,4 +1,4 @@
-// apps/admin-api/src/entities/permission.entity.ts
+// libs/core/src/lib/entities/permission.entity.ts
 import {
   Entity,
   Column,
@@ -12,28 +12,28 @@ import { Role } from './role.entity';
 @Entity({ name: 'permissions' })
 export class Permission {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
   @Index()
-  name: string; // users.create, products.read
+  name!: string; // users.create, products.read
 
   @Column()
   @Index()
-  resource: string; // users, products, orders
+  resource!: string; // users, products, orders
 
   @Column()
-  action: string; // create, read, update, delete
+  action!: string; // create, read, update, delete
 
   @Column({ nullable: true })
-  description: string;
+  description!: string;
 
   @Column({ default: 'system' })
-  category: string; // system, custom
+  category!: string; // system, custom
 
   @ManyToMany(() => Role, (role) => role.permissions)
-  roles: Role[];
+  roles!: Role[];
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 }

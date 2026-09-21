@@ -16,7 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser } from '@ecommerce/auth';
 
 @ApiTags('notifications')
 @ApiBearerAuth()

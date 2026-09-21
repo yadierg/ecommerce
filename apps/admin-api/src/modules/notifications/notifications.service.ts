@@ -6,13 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, IsNull, Or , Equal} from 'typeorm';
-import {
-  Notification,
-  NotificationType,
-  NotificationPriority,
-} from '../../entities/notification.entity';
+import { Notification, NotificationType, NotificationPriority } from '@ecommerce/core';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
+
 
 @Injectable()
 export class NotificationsService {

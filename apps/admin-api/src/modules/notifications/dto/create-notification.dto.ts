@@ -1,16 +1,7 @@
 // apps/admin-api/src/modules/notifications/dto/create-notification.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEnum,
-  IsObject,
-} from 'class-validator';
-import {
-  NotificationType,
-  NotificationPriority,
-} from '../../../entities/notification.entity';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsObject } from 'class-validator';
+import { NotificationType, NotificationPriority } from '@ecommerce/core';
 
 export class CreateNotificationDto {
   @ApiProperty({ required: false, description: 'null = global' })

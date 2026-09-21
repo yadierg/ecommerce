@@ -1,17 +1,25 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../dist/out-tsc",
-    "declaration": true,
+    "outDir": "../../dist/apps/admin-api",
+    "rootDir": "../..",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "types": ["node"],
-    "target": "es2021",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": true,
+    "target": "es2022",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": false,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
+    "sourceMap": true,
+    "declaration": false,
+    "removeComments": true,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "exclude": [

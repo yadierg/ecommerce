@@ -1,7 +1,6 @@
-// apps/admin-api/src/modules/permissions/permissions.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Permission } from '../../entities/permission.entity';
+import { Permission } from '@ecommerce/core';
 import { PermissionsController } from './permissions.controller';
 import { PermissionsService } from './permissions.service';
 

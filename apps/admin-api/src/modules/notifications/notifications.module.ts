@@ -1,11 +1,10 @@
-// apps/admin-api/src/modules/notifications/notifications.module.ts
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Notification } from '../../entities/notification.entity';
+import { Notification } from '@ecommerce/core';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 
-@Global() // ← Global para inyectar en otros módulos
+@Global()
 @Module({
   imports: [TypeOrmModule.forFeature([Notification])],
   controllers: [NotificationsController],

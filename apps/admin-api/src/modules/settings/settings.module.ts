@@ -1,12 +1,11 @@
-// apps/admin-api/src/modules/settings/settings.module.ts
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Setting } from '../../entities/setting.entity';
+import { Setting } from '@ecommerce/core';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { SettingsSeeder } from './settings.seeder';
 
-@Global() // ← Global para inyectar en cualquier módulo
+@Global()
 @Module({
   imports: [TypeOrmModule.forFeature([Setting])],
   controllers: [SettingsController],

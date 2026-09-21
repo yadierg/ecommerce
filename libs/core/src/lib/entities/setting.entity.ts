@@ -1,4 +1,4 @@
-// apps/admin-api/src/entities/setting.entity.ts
+// libs/core/src/lib/entities/setting.entity.ts
 import {
   Entity,
   Column,
@@ -11,34 +11,34 @@ import {
 @Entity({ name: 'settings' })
 export class Setting {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
   @Index()
-  key: string;
+  key!: string;
 
   @Column({ type: 'jsonb' })
   value: any;
 
   @Column()
   @Index()
-  group: string; // general, email, payment, shipping, tax
+  group!: string; // general, email, payment, shipping, tax
 
   @Column({ nullable: true })
-  description: string;
+  description!: string;
 
   @Column({ default: 'string' })
-  type: string; // string, number, boolean, json, array
+  type!: string; // string, number, boolean, json, array
 
   @Column({ default: true, name: 'is_public' })
-  isPublic: boolean; // Si es visible públicamente
+  isPublic!: boolean; // Si es visible públicamente
 
   @Column({ default: false, name: 'is_editable' })
-  isEditable: boolean; // Si se puede editar desde el panel
+  isEditable!: boolean; // Si se puede editar desde el panel
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }

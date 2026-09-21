@@ -1,4 +1,4 @@
-// apps/admin-api/src/entities/notification.entity.ts
+// libs/core/src/lib/entities/notification.entity.ts
 import {
   Entity,
   Column,
@@ -27,22 +27,22 @@ export enum NotificationPriority {
 @Entity({ name: 'notifications' })
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   // null = notificación global (para todos los admins)
   @Column({ name: 'user_id', nullable: true })
   @Index()
-  userId: string | null;
+  userId!: string | null;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @Column()
-  title: string;
+  title!: string;
 
   @Column({ type: 'text' })
-  message: string;
+  message!: string;
 
   @Column({
     type: 'enum',
@@ -50,7 +50,7 @@ export class Notification {
     default: NotificationType.INFO,
   })
   @Index()
-  type: NotificationType;
+  type!: NotificationType;
 
   @Column({
     type: 'enum',
@@ -58,29 +58,29 @@ export class Notification {
     default: NotificationPriority.NORMAL,
   })
   @Index()
-  priority: NotificationPriority;
+  priority!: NotificationPriority;
 
   @Column({ nullable: true })
   @Index()
-  category: string; // user, order, inventory, budget, system
+  category!: string; // user, order, inventory, budget, system
 
   @Column({ default: false, name: 'is_read' })
   @Index()
-  isRead: boolean;
+  isRead!: boolean;
 
   @Column({ name: 'read_at', nullable: true })
-  readAt: Date;
+  readAt!: Date;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>;
+  metadata!: Record<string, any>;
 
   @Column({ nullable: true })
-  actionUrl: string; // Link a la acción relacionada
+  actionUrl!: string; // Link a la acción relacionada
 
   @Column({ nullable: true })
-  actionLabel: string;
+  actionLabel!: string;
 
   @CreateDateColumn({ name: 'created_at' })
   @Index()
-  createdAt: Date;
+  createdAt!: Date;
 }

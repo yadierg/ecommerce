@@ -15,8 +15,7 @@ import { AuthModule } from '../modules/auth/auth.module';
 import { NotificationsModule } from '../modules/notifications/notifications.module';
 
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { JwtAuthGuard, PermissionsGuard } from '@ecommerce/auth';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -36,7 +35,6 @@ import { AppService } from './app.service';
       inject: [ConfigService],
     }),
 
-    // Módulos
     AuthModule,
     UsersModule,
     AuditModule,
@@ -48,17 +46,14 @@ import { AppService } from './app.service';
   controllers: [AppController],
   providers: [
     AppService,
-    // Guard global de JWT (aplica a TODAS las rutas excepto @Public)
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    // Guard global de permisos
     {
       provide: APP_GUARD,
       useClass: PermissionsGuard,
     },
-    // Interceptor de auditoría
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
