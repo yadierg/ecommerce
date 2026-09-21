@@ -1,16 +1,20 @@
-// apps/admin-api/src/config/database.config.ts
+// apps/store-api/src/config/database.config.ts
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import {
   User,
-  AuditLog,
-  Setting,
   Role,
   Permission,
   Session,
+  AuditLog,
+  Setting,
   Notification,
   Category,
   Product,
+  Cart,
+  CartItem, 
+  Order,
+  OrderItem, 
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -23,7 +27,23 @@ export const getDatabaseConfig = (
   password: configService.get('DB_PASSWORD', 'dev123'),
   database: configService.get('DB_NAME', 'ecommerce_dev'),
 
-  entities: [User, AuditLog, Setting, Role, Permission, Session, Notification, Category, Product],
+  entities: [
+    // Admin entities (compartidas)
+    User,
+    Role,
+    Permission,
+    Session,
+    AuditLog,
+    Setting,
+    Notification,
+    // Store entities
+    Category,
+    Product,
+    Cart,
+    CartItem,
+    Order,
+    OrderItem,
+  ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',
