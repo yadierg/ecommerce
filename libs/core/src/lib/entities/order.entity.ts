@@ -51,6 +51,10 @@ export class Order {
   @Index()
   userId?: string | null;
 
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string | null;
+
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'user_id' })
   user?: User;

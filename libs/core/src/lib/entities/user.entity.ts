@@ -10,9 +10,12 @@ import {
   Index,
   ManyToMany,
   JoinTable,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Role } from './role.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -30,15 +33,32 @@ export class User {
   name!: string;
 
   @Column({ default: 'user' })
-  role!: string; // Campo legacy (mantener por compatibilidad)
+  role!: string;
 
   @Column({ default: true })
   isActive!: boolean;
 
   @Column({ nullable: true, name: 'last_login' })
-  lastLogin!: Date;
+  lastLogin?: Date;
 
-  // ✅ NUEVA RELACIÓN
+  // ============================================
+  // MULTI-TENANT
+  // ============================================
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string | null;
+
+  @ManyToOne(() => Tenant, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant?: Tenant;
+
+  @Column({ default: false, name: 'is_super_admin' })
+  @Index()
+  isSuperAdmin!: boolean; // Solo el super admin puede ver todos los tenants
+
+  // ============================================
+  // RELACIONES
+  // ============================================
   @ManyToMany(() => Role, (role) => role.users, { eager: true })
   @JoinTable({
     name: 'user_roles',

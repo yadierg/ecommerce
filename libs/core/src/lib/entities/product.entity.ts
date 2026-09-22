@@ -65,6 +65,10 @@ export class Product {
   @Index()
   categoryId?: string;
 
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string | null;
+
   @ManyToOne(() => Category, (category) => category.products, {
     onDelete: 'SET NULL',
     nullable: true,

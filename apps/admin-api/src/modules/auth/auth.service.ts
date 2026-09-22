@@ -256,6 +256,8 @@ export class AuthService {
       role: user.role,
       roles: user.roles?.map((r) => r.name) || [],
       permissions,
+      tenantId: user.tenantId,
+      isSuperAdmin: user.isSuperAdmin,
     };
 
     // Access Token (corto plazo)

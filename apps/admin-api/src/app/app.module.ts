@@ -13,6 +13,7 @@ import { RolesModule } from '../modules/roles/roles.module';
 import { PermissionsModule } from '../modules/permissions/permissions.module';
 import { AuthModule } from '../modules/auth/auth.module';
 import { NotificationsModule } from '../modules/notifications/notifications.module';
+import { TenantsModule } from '../modules/tenants/tenants.module';
 
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 import { JwtAuthGuard, PermissionsGuard } from '@ecommerce/auth';
@@ -42,6 +43,7 @@ import { AppService } from './app.service';
     RolesModule,
     PermissionsModule,
     NotificationsModule,
+    TenantsModule,
   ],
   controllers: [AppController],
   providers: [

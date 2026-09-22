@@ -7,6 +7,8 @@ import {
   MinLength,
   IsOptional,
   IsEnum,
+  IsUUID,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -30,4 +32,14 @@ export class CreateUserDto {
   @IsEnum(['admin', 'user'])
   @IsOptional()
   role?: string;
+
+  @ApiProperty({ required: false, description: 'ID del tenant' })
+  @IsUUID()
+  @IsOptional()
+  tenantId?: string;
+
+  @ApiProperty({ required: false, default: false })
+  @IsBoolean()
+  @IsOptional()
+  isSuperAdmin?: boolean;
 }

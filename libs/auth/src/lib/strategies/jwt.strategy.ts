@@ -10,6 +10,8 @@ export interface JwtPayload {
   role: string;
   roles: string[];
   permissions: string[];
+  tenantId?: string | null;
+  isSuperAdmin?: boolean;
 }
 
 @Injectable()
@@ -31,6 +33,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       role: payload.role,
       roles: payload.roles,
       permissions: payload.permissions,
+      tenantId: payload.tenantId,         // ← NUEVO
+    isSuperAdmin: payload.isSuperAdmin, // ← NUEVO
     };
   }
 }

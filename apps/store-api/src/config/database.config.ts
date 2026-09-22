@@ -14,7 +14,8 @@ import {
   Cart,
   CartItem, 
   Order,
-  OrderItem, 
+  OrderItem,
+  Tenant,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -43,6 +44,7 @@ export const getDatabaseConfig = (
     CartItem,
     Order,
     OrderItem,
+    Tenant,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

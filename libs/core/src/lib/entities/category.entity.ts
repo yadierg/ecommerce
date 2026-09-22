@@ -34,6 +34,10 @@ export class Category {
   @Column({ nullable: true, name: 'parent_id' })
   @Index()
   parentId?: string | null;
+  
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string | null;
 
   @ManyToOne(() => Category, (category) => category.children, {
     onDelete: 'SET NULL',

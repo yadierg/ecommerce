@@ -18,6 +18,10 @@ export class Cart {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string | null;
+
   // Usuario registrado (opcional)
   @Column({ name: 'user_id', nullable: true })
   @Index()
