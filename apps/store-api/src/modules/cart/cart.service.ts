@@ -24,20 +24,30 @@ export class CartService {
   // ============================================
   // OBTENER O CREAR CARRITO
   // ============================================
-  async getOrCreateCart(userId?: string, sessionId?: string): Promise<Cart> {
+  async getOrCreateCart(
+    tenantId: string,
+    userId?: string | null,
+    sessionId?: string | null,
+  ): Promise<Cart> {
     if (!userId && !sessionId) {
-      throw new BadRequestException('Se requiere userId o sessionId');
+      throw new BadRequestException(
+        'Se requiere userId o sessionId para el carrito',
+      );
     }
 
+    // Buscar carrito activo del usuario/sesión en el mismo tenant
+    const where: any = { tenantId, status: 'active' };
+    if (userId) where.userId = userId;
+    else where.sessionId = sessionId;
+
     let cart = await this.cartsRepository.findOne({
-      where: userId
-        ? { userId, status: 'active' }
-        : { sessionId, status: 'active' },
+      where,
       relations: ['items', 'items.product'],
     });
 
     if (!cart) {
       cart = this.cartsRepository.create({
+        tenantId,
         userId: userId || null,
         sessionId: sessionId || null,
         status: 'active',
@@ -53,26 +63,26 @@ export class CartService {
   // AGREGAR AL CARRITO
   // ============================================
   async addItem(
-    userId: string | undefined,
-    sessionId: string | undefined,
+    tenantId: string,
+    userId: string | null | undefined,
+    sessionId: string | null | undefined,
     dto: AddToCartDto,
   ): Promise<Cart> {
-    const cart = await this.getOrCreateCart(userId, sessionId);
+    const cart = await this.getOrCreateCart(tenantId, userId, sessionId);
 
-    // Verificar producto
+    // Verificar producto del mismo tenant
     const product = await this.productsRepository.findOne({
-      where: { id: dto.productId, isActive: true },
+      where: { id: dto.productId, tenantId, isActive: true },
     });
 
     if (!product) {
-      throw new NotFoundException('Producto no encontrado');
+      throw new NotFoundException('Producto no encontrado en tu empresa');
     }
 
     if (product.stock < (dto.quantity || 1)) {
       throw new BadRequestException('Stock insuficiente');
     }
 
-    // Verificar si ya está en el carrito
     const existingItem = cart.items?.find(
       (item) => item.productId === dto.productId,
     );
@@ -97,7 +107,7 @@ export class CartService {
       await this.cartItemsRepository.save(cartItem);
     }
 
-    return this.recalculate(cart.id);
+    return this.recalculate(cart.id, tenantId);
   }
 
   // ============================================
@@ -107,13 +117,14 @@ export class CartService {
     cartId: string,
     itemId: string,
     dto: UpdateCartItemDto,
+    tenantId: string,
   ): Promise<Cart> {
     const item = await this.cartItemsRepository.findOne({
       where: { id: itemId, cartId },
-      relations: ['product'],
+      relations: ['product', 'cart'],
     });
 
-    if (!item) {
+    if (!item || item.cart.tenantId !== tenantId) {
       throw new NotFoundException('Item no encontrado');
     }
 
@@ -127,39 +138,48 @@ export class CartService {
       await this.cartItemsRepository.save(item);
     }
 
-    return this.recalculate(cartId);
+    return this.recalculate(cartId, tenantId);
   }
 
   // ============================================
   // ELIMINAR ITEM
   // ============================================
-  async removeItem(cartId: string, itemId: string): Promise<Cart> {
+  async removeItem(cartId: string, itemId: string, tenantId: string): Promise<Cart> {
     const item = await this.cartItemsRepository.findOne({
       where: { id: itemId, cartId },
+      relations: ['cart'],
     });
 
-    if (!item) {
+    if (!item || item.cart.tenantId !== tenantId) {
       throw new NotFoundException('Item no encontrado');
     }
 
     await this.cartItemsRepository.remove(item);
-    return this.recalculate(cartId);
+    return this.recalculate(cartId, tenantId);
   }
 
   // ============================================
   // VACIAR CARRITO
   // ============================================
-  async clearCart(cartId: string): Promise<Cart> {
+  async clearCart(cartId: string, tenantId: string): Promise<Cart> {
+    const cart = await this.cartsRepository.findOne({
+      where: { id: cartId, tenantId },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('Carrito no encontrado');
+    }
+
     await this.cartItemsRepository.delete({ cartId });
-    return this.recalculate(cartId);
+    return this.recalculate(cartId, tenantId);
   }
 
   // ============================================
   // RECALCULAR TOTALES
   // ============================================
-  private async recalculate(cartId: string): Promise<Cart> {
+  private async recalculate(cartId: string, tenantId: string): Promise<Cart> {
     const cart = await this.cartsRepository.findOne({
-      where: { id: cartId },
+      where: { id: cartId, tenantId },
       relations: ['items', 'items.product'],
     });
 
@@ -168,7 +188,7 @@ export class CartService {
     }
 
     cart.subtotal = (cart.items || []).reduce(
-      (sum, item) => sum + item.price * item.quantity,
+      (sum, item) => sum + Number(item.price) * item.quantity,
       0,
     );
 
@@ -179,27 +199,34 @@ export class CartService {
   // ============================================
   // OBTENER CARRITO
   // ============================================
-  async getCart(userId?: string, sessionId?: string): Promise<Cart> {
-    const cart = await this.getOrCreateCart(userId, sessionId);
-    return this.recalculate(cart.id);
+  async getCart(
+    tenantId: string,
+    userId?: string | null,
+    sessionId?: string | null,
+  ): Promise<Cart> {
+    const cart = await this.getOrCreateCart(tenantId, userId, sessionId);
+    return this.recalculate(cart.id, tenantId);
   }
 
   // ============================================
-  // MERGE (cuando guest se registra)
+  // MERGE (guest → user al loguearse)
   // ============================================
-  async mergeCarts(sessionId: string, userId: string): Promise<Cart> {
+  async mergeCarts(
+    tenantId: string,
+    sessionId: string,
+    userId: string,
+  ): Promise<Cart> {
     const guestCart = await this.cartsRepository.findOne({
-      where: { sessionId, status: 'active' },
+      where: { tenantId, sessionId, status: 'active' },
       relations: ['items'],
     });
 
     if (!guestCart) {
-      return this.getOrCreateCart(userId);
+      return this.getOrCreateCart(tenantId, userId);
     }
 
-    const userCart = await this.getOrCreateCart(userId);
+    const userCart = await this.getOrCreateCart(tenantId, userId);
 
-    // Mover items del guest cart al user cart
     for (const item of guestCart.items || []) {
       const existing = userCart.items?.find(
         (i) => i.productId === item.productId,
@@ -214,10 +241,9 @@ export class CartService {
       }
     }
 
-    // Marcar guest cart como convertido
     guestCart.status = 'converted';
     await this.cartsRepository.save(guestCart);
 
-    return this.recalculate(userCart.id);
+    return this.recalculate(userCart.id, tenantId);
   }
 }

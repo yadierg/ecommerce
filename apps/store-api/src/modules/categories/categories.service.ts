@@ -1,10 +1,11 @@
+// apps/store-api/src/modules/categories/categories.service.ts
 import {
   Injectable,
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, FindOptionsWhere } from 'typeorm';
 import { Category } from '@ecommerce/core';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -16,7 +17,6 @@ export class CategoriesService {
     private readonly categoriesRepository: Repository<Category>,
   ) {}
 
-  // Generar slug
   private slugify(text: string): string {
     return text
       .toLowerCase()
@@ -26,12 +26,15 @@ export class CategoriesService {
       .replace(/(^-|-$)/g, '');
   }
 
+  // ============================================
   // CREATE
-  async create(dto: CreateCategoryDto): Promise<Category> {
+  // ============================================
+  async create(dto: CreateCategoryDto, tenantId: string): Promise<Category> {
     const slug = dto.slug || this.slugify(dto.name);
 
+    // Verificar que no exista en el mismo tenant
     const existing = await this.categoriesRepository.findOne({
-      where: { slug },
+      where: { slug, tenantId },
     });
 
     if (existing) {
@@ -41,14 +44,22 @@ export class CategoriesService {
     const category = this.categoriesRepository.create({
       ...dto,
       slug,
+      tenantId,  // ← Asignar tenant
     });
 
     return this.categoriesRepository.save(category);
   }
 
-  // READ ALL
-  async findAll(includeInactive = false) {
-    const where = includeInactive ? {} : { isActive: true };
+  // ============================================
+  // READ ALL (filtrar por tenant)
+  // ============================================
+  async findAll(tenantId: string, includeInactive = false) {
+    const where: FindOptionsWhere<Category> = { tenantId };
+
+    if (!includeInactive) {
+      where.isActive = true;
+    }
+
     return this.categoriesRepository.find({
       where,
       relations: ['parent', 'children'],
@@ -56,20 +67,23 @@ export class CategoriesService {
     });
   }
 
-  // READ TREE (categorías jerárquicas)
-  async findTree() {
-    const categories = await this.categoriesRepository.find({
-      where: { isActive: true, parentId: IsNull() },
+  // ============================================
+  // READ TREE (filtrar por tenant)
+  // ============================================
+  async findTree(tenantId: string) {
+    return this.categoriesRepository.find({
+      where: { tenantId, isActive: true, parentId: IsNull() },
       relations: ['children', 'children.children'],
       order: { order: 'ASC', name: 'ASC' },
     });
-    return categories;
   }
 
-  // READ ONE
-  async findOne(id: string): Promise<Category> {
+  // ============================================
+  // READ ONE (validar tenant)
+  // ============================================
+  async findOne(id: string, tenantId: string): Promise<Category> {
     const category = await this.categoriesRepository.findOne({
-      where: { id },
+      where: { id, tenantId },  // ← Filtrar por tenant
       relations: ['parent', 'children', 'products'],
     });
 
@@ -80,10 +94,12 @@ export class CategoriesService {
     return category;
   }
 
+  // ============================================
   // READ BY SLUG
-  async findBySlug(slug: string): Promise<Category> {
+  // ============================================
+  async findBySlug(slug: string, tenantId: string): Promise<Category> {
     const category = await this.categoriesRepository.findOne({
-      where: { slug },
+      where: { slug, tenantId },
       relations: ['parent', 'children', 'products'],
     });
 
@@ -94,9 +110,11 @@ export class CategoriesService {
     return category;
   }
 
+  // ============================================
   // UPDATE
-  async update(id: string, dto: UpdateCategoryDto): Promise<Category> {
-    const category = await this.findOne(id);
+  // ============================================
+  async update(id: string, dto: UpdateCategoryDto, tenantId: string): Promise<Category> {
+    const category = await this.findOne(id, tenantId);
 
     if (dto.name && !dto.slug) {
       dto.slug = this.slugify(dto.name);
@@ -104,7 +122,7 @@ export class CategoriesService {
 
     if (dto.slug && dto.slug !== category.slug) {
       const existing = await this.categoriesRepository.findOne({
-        where: { slug: dto.slug },
+        where: { slug: dto.slug, tenantId },
       });
       if (existing) {
         throw new ConflictException(`La categoría "${dto.slug}" ya existe`);
@@ -115,11 +133,12 @@ export class CategoriesService {
     return this.categoriesRepository.save(category);
   }
 
+  // ============================================
   // DELETE
-  async remove(id: string): Promise<{ message: string }> {
-    const category = await this.findOne(id);
+  // ============================================
+  async remove(id: string, tenantId: string): Promise<{ message: string }> {
+    const category = await this.findOne(id, tenantId);
 
-    // Verificar que no tenga hijos
     if (category.children?.length > 0) {
       throw new ConflictException(
         'No se puede eliminar una categoría con subcategorías',
@@ -130,14 +149,18 @@ export class CategoriesService {
     return { message: 'Categoría eliminada' };
   }
 
+  // ============================================
   // STATS
-  async getStats() {
-    const total = await this.categoriesRepository.count();
+  // ============================================
+  async getStats(tenantId: string) {
+    const total = await this.categoriesRepository.count({
+      where: { tenantId },
+    });
     const active = await this.categoriesRepository.count({
-      where: { isActive: true },
+      where: { tenantId, isActive: true },
     });
     const root = await this.categoriesRepository.count({
-      where: { parentId: IsNull() },
+      where: { tenantId, parentId: IsNull() },
     });
 
     return {

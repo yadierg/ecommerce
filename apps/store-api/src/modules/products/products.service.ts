@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, Between, MoreThan, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Product, Category } from '@ecommerce/core';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -21,9 +21,6 @@ export class ProductsService {
     private readonly categoriesRepository: Repository<Category>,
   ) {}
 
-  // ============================================
-  // SLUGIFY
-  // ============================================
   private slugify(text: string): string {
     return text
       .toLowerCase()
@@ -36,47 +33,45 @@ export class ProductsService {
   // ============================================
   // CREATE
   // ============================================
-  async create(dto: CreateProductDto): Promise<Product> {
+  async create(dto: CreateProductDto, tenantId: string): Promise<Product> {
     const slug = dto.slug || this.slugify(dto.name);
 
-    // Verificar SKU único
     const skuExists = await this.productsRepository.findOne({
-      where: { sku: dto.sku },
+      where: { sku: dto.sku, tenantId },
     });
     if (skuExists) {
       throw new ConflictException(`El SKU "${dto.sku}" ya existe`);
     }
 
-    // Verificar slug único
     const slugExists = await this.productsRepository.findOne({
-      where: { slug },
+      where: { slug, tenantId },
     });
     if (slugExists) {
       throw new ConflictException(`El slug "${slug}" ya existe`);
     }
 
-    // Verificar categoría si se proporciona
     if (dto.categoryId) {
       const category = await this.categoriesRepository.findOne({
-        where: { id: dto.categoryId },
+        where: { id: dto.categoryId, tenantId },
       });
       if (!category) {
-        throw new BadRequestException('La categoría no existe');
+        throw new BadRequestException('La categoría no existe en tu empresa');
       }
     }
 
     const product = this.productsRepository.create({
       ...dto,
       slug,
+      tenantId,
     });
 
     return this.productsRepository.save(product);
   }
 
   // ============================================
-  // READ ALL (con filtros)
+  // READ ALL
   // ============================================
-  async findAll(query: QueryProductDto) {
+  async findAll(query: QueryProductDto, tenantId: string) {
     const {
       page = 1,
       limit = 20,
@@ -96,9 +91,9 @@ export class ProductsService {
 
     const qb = this.productsRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category');
+      .leftJoinAndSelect('product.category', 'category')
+      .where('product.tenantId = :tenantId', { tenantId });
 
-    // Filtro de búsqueda
     if (search) {
       qb.andWhere(
         '(product.name ILIKE :search OR product.description ILIKE :search OR product.sku ILIKE :search)',
@@ -106,7 +101,6 @@ export class ProductsService {
       );
     }
 
-    // Filtros
     if (categoryId) {
       qb.andWhere('product.categoryId = :categoryId', { categoryId });
     }
@@ -126,7 +120,6 @@ export class ProductsService {
     if (isActive !== undefined) {
       qb.andWhere('product.isActive = :isActive', { isActive });
     } else {
-      // Por defecto, solo activos en store
       qb.andWhere('product.isActive = :isActive', { isActive: true });
     }
 
@@ -138,12 +131,10 @@ export class ProductsService {
       qb.andWhere('product.stock > 0');
     }
 
-    // Ordenamiento
     const validSortFields = ['name', 'price', 'createdAt', 'soldCount', 'ratingAverage'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
     qb.orderBy(`product.${sortField}`, sortOrder);
 
-    // Paginación
     qb.skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
@@ -162,9 +153,9 @@ export class ProductsService {
   // ============================================
   // READ ONE
   // ============================================
-  async findOne(id: string): Promise<Product> {
+  async findOne(id: string, tenantId: string): Promise<Product> {
     const product = await this.productsRepository.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: ['category'],
     });
 
@@ -176,11 +167,11 @@ export class ProductsService {
   }
 
   // ============================================
-  // READ BY SLUG (público)
+  // READ BY SLUG
   // ============================================
-  async findBySlug(slug: string): Promise<Product> {
+  async findBySlug(slug: string, tenantId: string): Promise<Product> {
     const product = await this.productsRepository.findOne({
-      where: { slug },
+      where: { slug, tenantId },
       relations: ['category'],
     });
 
@@ -188,18 +179,17 @@ export class ProductsService {
       throw new NotFoundException(`Producto "${slug}" no encontrado`);
     }
 
-    // Incrementar view count
     await this.productsRepository.increment({ id: product.id }, 'viewCount', 1);
 
     return product;
   }
 
   // ============================================
-  // READ FEATURED
+  // FEATURED
   // ============================================
-  async findFeatured(limit = 10) {
+  async findFeatured(tenantId: string, limit = 10) {
     return this.productsRepository.find({
-      where: { isFeatured: true, isActive: true },
+      where: { isFeatured: true, isActive: true, tenantId },
       relations: ['category'],
       order: { createdAt: 'DESC' },
       take: limit,
@@ -207,59 +197,57 @@ export class ProductsService {
   }
 
   // ============================================
-  // READ RELATED (misma categoría)
+  // RELATED
   // ============================================
-  async findRelated(id: string, limit = 5) {
-    const product = await this.findOne(id);
+  async findRelated(id: string, tenantId: string, limit = 5) {
+    const product = await this.findOne(id, tenantId);
 
-    if (!product.categoryId) {
-      return [];
-    }
+    if (!product.categoryId) return [];
 
-    return this.productsRepository.find({
-      where: {
-        categoryId: product.categoryId,
-        isActive: true,
-      },
-      relations: ['category'],
-      take: limit + 1,
-    }).then((products) => products.filter((p) => p.id !== id).slice(0, limit));
+    return this.productsRepository
+      .find({
+        where: {
+          categoryId: product.categoryId,
+          isActive: true,
+          tenantId,
+        },
+        relations: ['category'],
+        take: limit + 1,
+      })
+      .then((products) => products.filter((p) => p.id !== id).slice(0, limit));
   }
 
   // ============================================
   // UPDATE
   // ============================================
-  async update(id: string, dto: UpdateProductDto): Promise<Product> {
-    const product = await this.findOne(id);
+  async update(id: string, dto: UpdateProductDto, tenantId: string): Promise<Product> {
+    const product = await this.findOne(id, tenantId);
 
-    // Verificar SKU si cambia
     if (dto.sku && dto.sku !== product.sku) {
       const skuExists = await this.productsRepository.findOne({
-        where: { sku: dto.sku },
+        where: { sku: dto.sku, tenantId },
       });
       if (skuExists) {
         throw new ConflictException(`El SKU "${dto.sku}" ya existe`);
       }
     }
 
-    // Verificar slug si cambia
     if (dto.name && !dto.slug) {
       dto.slug = this.slugify(dto.name);
     }
 
     if (dto.slug && dto.slug !== product.slug) {
       const slugExists = await this.productsRepository.findOne({
-        where: { slug: dto.slug },
+        where: { slug: dto.slug, tenantId },
       });
       if (slugExists) {
         throw new ConflictException(`El slug "${dto.slug}" ya existe`);
       }
     }
 
-    // Verificar categoría si cambia
     if (dto.categoryId && dto.categoryId !== product.categoryId) {
       const category = await this.categoriesRepository.findOne({
-        where: { id: dto.categoryId },
+        where: { id: dto.categoryId, tenantId },
       });
       if (!category) {
         throw new BadRequestException('La categoría no existe');
@@ -273,8 +261,8 @@ export class ProductsService {
   // ============================================
   // UPDATE STOCK
   // ============================================
-  async updateStock(id: string, quantity: number): Promise<Product> {
-    const product = await this.findOne(id);
+  async updateStock(id: string, quantity: number, tenantId: string): Promise<Product> {
+    const product = await this.findOne(id, tenantId);
 
     const newStock = product.stock + quantity;
 
@@ -289,8 +277,8 @@ export class ProductsService {
   // ============================================
   // DELETE
   // ============================================
-  async remove(id: string): Promise<{ message: string }> {
-    const product = await this.findOne(id);
+  async remove(id: string, tenantId: string): Promise<{ message: string }> {
+    const product = await this.findOne(id, tenantId);
     await this.productsRepository.remove(product);
     return { message: 'Producto eliminado' };
   }
@@ -298,27 +286,31 @@ export class ProductsService {
   // ============================================
   // STATS
   // ============================================
-  async getStats() {
-    const total = await this.productsRepository.count();
+  async getStats(tenantId: string) {
+    const total = await this.productsRepository.count({
+      where: { tenantId },
+    });
     const active = await this.productsRepository.count({
-      where: { isActive: true },
+      where: { tenantId, isActive: true },
     });
     const featured = await this.productsRepository.count({
-      where: { isFeatured: true },
+      where: { tenantId, isFeatured: true },
     });
     const outOfStock = await this.productsRepository.count({
-      where: { stock: 0 },
+      where: { tenantId, stock: 0 },
     });
+
     const lowStock = await this.productsRepository
       .createQueryBuilder('product')
-      .where('product.stock > 0')
+      .where('product.tenantId = :tenantId', { tenantId })
+      .andWhere('product.stock > 0')
       .andWhere('product.stock <= product.lowStockThreshold')
       .getCount();
 
-    // Precio promedio
     const avgPrice = await this.productsRepository
       .createQueryBuilder('product')
       .select('AVG(product.price)', 'avg')
+      .where('product.tenantId = :tenantId', { tenantId })
       .getRawOne();
 
     return {
@@ -333,13 +325,14 @@ export class ProductsService {
   }
 
   // ============================================
-  // GET BRANDS
+  // BRANDS
   // ============================================
-  async getBrands(): Promise<string[]> {
+  async getBrands(tenantId: string): Promise<string[]> {
     const result = await this.productsRepository
       .createQueryBuilder('product')
       .select('DISTINCT product.brand', 'brand')
-      .where('product.brand IS NOT NULL')
+      .where('product.tenantId = :tenantId', { tenantId })
+      .andWhere('product.brand IS NOT NULL')
       .andWhere('product.isActive = true')
       .orderBy('product.brand', 'ASC')
       .getRawMany();

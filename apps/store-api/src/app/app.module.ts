@@ -5,7 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
 
 import { getDatabaseConfig } from '../config/database.config';
-import { JwtAuthGuard, PermissionsGuard } from '@ecommerce/auth';
+import {
+  JwtAuthGuard,
+  PermissionsGuard,
+  AuthModule as SharedAuthModule,  // ← NUEVO
+} from '@ecommerce/auth';
 
 import { CategoriesModule } from '../modules/categories/categories.module';
 import { ProductsModule } from '../modules/products/products.module';
@@ -37,7 +41,12 @@ import { AppService } from './app.service';
     }),
 
     // ============================================
-    // MÓDULOS
+    // AUTH COMPARTIDO (registra JwtStrategy)
+    // ============================================
+    SharedAuthModule,  // ← IMPORTANTE: Registrar JwtStrategy
+
+    // ============================================
+    // MÓDULOS DE LA APP
     // ============================================
     CategoriesModule,
     ProductsModule,

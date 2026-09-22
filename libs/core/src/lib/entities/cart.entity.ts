@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { CartItem } from './cart-item.entity';
 import { User } from './user.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity({ name: 'carts' })
 export class Cart {
@@ -21,6 +22,10 @@ export class Cart {
   @Column({ name: 'tenant_id', nullable: true })
   @Index()
   tenantId?: string | null;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant?: Tenant;
 
   // Usuario registrado (opcional)
   @Column({ name: 'user_id', nullable: true })

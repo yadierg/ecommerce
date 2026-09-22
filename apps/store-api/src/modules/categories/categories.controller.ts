@@ -1,3 +1,4 @@
+// apps/store-api/src/modules/categories/categories.controller.ts
 import {
   Controller,
   Get,
@@ -10,9 +11,16 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  Headers,
+  BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
-import { Public } from '@ecommerce/auth';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import {
+  Public,              // ← IMPORTANTE
+  CurrentUser,
+  OptionalJwtGuard,
+} from '@ecommerce/auth';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -22,60 +30,117 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Crear categoría' })
-  create(@Body() dto: CreateCategoryDto) {
-    return this.categoriesService.create(dto);
+  private resolveTenantId(
+    userTenantId?: string | null,
+    headerTenantId?: string,
+  ): string {
+    const tenantId = userTenantId || headerTenantId;
+
+    if (!tenantId) {
+      throw new BadRequestException(
+        'Tenant no especificado. Envía el header "x-tenant-id" o autentícate.',
+      );
+    }
+
+    return tenantId;
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Crear categoría' })
+  create(
+    @Body() dto: CreateCategoryDto,
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.create(dto, tenantId);
+  }
+
+  // ⚠️ @Public + @UseGuards = funciona con y sin token
   @Public()
   @Get()
+  @UseGuards(OptionalJwtGuard)
   @ApiOperation({ summary: 'Listar categorías' })
-  findAll(@Query('includeInactive') includeInactive?: boolean) {
-    return this.categoriesService.findAll(includeInactive);
+  findAll(
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+    @Query('includeInactive') includeInactive?: boolean,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.findAll(tenantId, includeInactive);
   }
 
   @Public()
   @Get('tree')
+  @UseGuards(OptionalJwtGuard)
   @ApiOperation({ summary: 'Árbol de categorías' })
-  findTree() {
-    return this.categoriesService.findTree();
+  findTree(
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.findTree(tenantId);
   }
 
   @Public()
   @Get('stats')
-  @ApiOperation({ summary: 'Estadísticas de categorías' })
-  getStats() {
-    return this.categoriesService.getStats();
+  @UseGuards(OptionalJwtGuard)
+  @ApiOperation({ summary: 'Estadísticas' })
+  getStats(
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.getStats(tenantId);
   }
 
   @Public()
   @Get('slug/:slug')
-  @ApiOperation({ summary: 'Obtener por slug' })
-  findBySlug(@Param('slug') slug: string) {
-    return this.categoriesService.findBySlug(slug);
+  @UseGuards(OptionalJwtGuard)
+  @ApiOperation({ summary: 'Por slug' })
+  findBySlug(
+    @Param('slug') slug: string,
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.findBySlug(slug, tenantId);
   }
 
   @Public()
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener categoría por ID' })
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.categoriesService.findOne(id);
+  @UseGuards(OptionalJwtGuard)
+  @ApiOperation({ summary: 'Por ID' })
+  findOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.findOne(id, tenantId);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar categoría' })
+  @ApiOperation({ summary: 'Actualizar' })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateCategoryDto,
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
-    return this.categoriesService.update(id, dto);
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.update(id, dto, tenantId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Eliminar categoría' })
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.categoriesService.remove(id);
+  @ApiOperation({ summary: 'Eliminar' })
+  remove(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.categoriesService.remove(id, tenantId);
   }
 }

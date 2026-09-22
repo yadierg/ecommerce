@@ -11,6 +11,7 @@ import {
   Index,
 } from 'typeorm';
 import { Product } from './product.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity({ name: 'categories' })
 export class Category {
@@ -35,10 +36,6 @@ export class Category {
   @Index()
   parentId?: string | null;
   
-  @Column({ name: 'tenant_id', nullable: true })
-  @Index()
-  tenantId?: string | null;
-
   @ManyToOne(() => Category, (category) => category.children, {
     onDelete: 'SET NULL',
     nullable: true,
@@ -62,6 +59,17 @@ export class Category {
 
   @OneToMany(() => Product, (product) => product.category)
   products!: Product[];
+
+  // ============================================
+  // MULTI-TENANT
+  // ============================================
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string | null;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant?: Tenant;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

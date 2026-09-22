@@ -1,4 +1,4 @@
-// apps/admin-api/src/common/guards/jwt-auth.guard.ts
+// libs/auth/src/lib/guards/jwt-auth.guard.ts
 import {
   Injectable,
   ExecutionContext,
@@ -14,20 +14,21 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
+  override canActivate(context: ExecutionContext) {
+    // Verificar si el endpoint o controlador está marcado como @Public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (isPublic) {
-      return true;
+      return true;  // ← SALTA la validación
     }
 
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  override handleRequest(err: any, user: any) {
     if (err || !user) {
       throw err || new UnauthorizedException('Token inválido o expirado');
     }

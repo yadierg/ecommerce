@@ -10,6 +10,7 @@ import {
   Index,
 } from 'typeorm';
 import { Category } from './category.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity({ name: 'products' })
 export class Product {
@@ -68,6 +69,10 @@ export class Product {
   @Column({ name: 'tenant_id', nullable: true })
   @Index()
   tenantId?: string | null;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant?: Tenant;
 
   @ManyToOne(() => Category, (category) => category.products, {
     onDelete: 'SET NULL',

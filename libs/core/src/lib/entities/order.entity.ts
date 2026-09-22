@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { User } from './user.entity';
+import { Tenant } from './tenant.entity';
 
 export enum OrderStatus {
   PENDING = 'pending',       // Creado, esperando pago
@@ -54,6 +55,10 @@ export class Order {
   @Column({ name: 'tenant_id', nullable: true })
   @Index()
   tenantId?: string | null;
+
+  @ManyToOne(() => Tenant, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'tenant_id' })
+  tenant?: Tenant;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'user_id' })

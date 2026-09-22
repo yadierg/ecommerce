@@ -31,14 +31,13 @@ export class OrdersService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // ============================================
-  // GENERAR NÚMERO DE ORDEN
-  // ============================================
-  private async generateOrderNumber(): Promise<string> {
+  private async generateOrderNumber(tenantId: string): Promise<string> {
     const date = new Date();
     const prefix = `ORD-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-    const count = await this.ordersRepository.count();
+    const count = await this.ordersRepository.count({
+      where: { tenantId },
+    });
     const sequence = String(count + 1).padStart(5, '0');
 
     return `${prefix}-${sequence}`;
@@ -48,17 +47,19 @@ export class OrdersService {
   // CHECKOUT (crear orden desde carrito)
   // ============================================
   async checkout(
-    userId: string | undefined,
-    sessionId: string | undefined,
+    tenantId: string,
+    userId: string | null | undefined,
+    sessionId: string | null | undefined,
     dto: CreateOrderDto,
   ): Promise<Order> {
-    // Transacción para consistencia
     return this.dataSource.transaction(async (manager) => {
-      // 1. Obtener carrito
+      // 1. Obtener carrito del tenant
+      const where: any = { tenantId, status: 'active' };
+      if (userId) where.userId = userId;
+      else where.sessionId = sessionId;
+
       const cart = await manager.findOne(Cart, {
-        where: userId
-          ? { userId, status: 'active' }
-          : { sessionId, status: 'active' },
+        where,
         relations: ['items', 'items.product'],
       });
 
@@ -66,10 +67,10 @@ export class OrdersService {
         throw new BadRequestException('El carrito está vacío');
       }
 
-      // 2. Verificar stock de todos los items
+      // 2. Verificar stock
       for (const item of cart.items) {
         const product = await manager.findOne(Product, {
-          where: { id: item.productId },
+          where: { id: item.productId, tenantId },
         });
 
         if (!product || product.stock < item.quantity) {
@@ -81,19 +82,20 @@ export class OrdersService {
 
       // 3. Calcular totales
       const subtotal = cart.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
+        (sum, item) => sum + Number(item.price) * item.quantity,
         0,
       );
-      const tax = subtotal * 0.16; // 16% de impuesto
-      const shipping = subtotal >= 50 ? 0 : 5; // Envío gratis desde $50
-      const discount = cart.discount || 0;
+      const tax = subtotal * 0.16;
+      const shipping = subtotal >= 50 ? 0 : 5;
+      const discount = Number(cart.discount) || 0;
       const total = subtotal + tax + shipping - discount;
 
       // 4. Crear orden
-      const orderNumber = await this.generateOrderNumber();
+      const orderNumber = await this.generateOrderNumber(tenantId);
 
       const order = manager.create(Order, {
         orderNumber,
+        tenantId,  // ← IMPORTANTE
         userId: userId || null,
         customerName: dto.customerName,
         customerEmail: dto.customerEmail,
@@ -122,8 +124,8 @@ export class OrdersService {
           productSku: item.product.sku,
           productImage: item.product.mainImage,
           quantity: item.quantity,
-          price: item.price,
-          subtotal: item.price * item.quantity,
+          price: Number(item.price),
+          subtotal: Number(item.price) * item.quantity,
           options: item.options,
         });
 
@@ -132,15 +134,15 @@ export class OrdersService {
         // 6. Reducir stock
         await manager.decrement(
           Product,
-          { id: item.productId },
+          { id: item.productId, tenantId },
           'stock',
           item.quantity,
         );
 
-        // 7. Aumentar soldCount
+        // 7. Incrementar soldCount
         await manager.increment(
           Product,
-          { id: item.productId },
+          { id: item.productId, tenantId },
           'soldCount',
           item.quantity,
         );
@@ -150,28 +152,28 @@ export class OrdersService {
       cart.status = 'converted';
       await manager.save(cart);
 
-      // 9. Retornar orden con items
+      // 9. Retornar con items
       return manager.findOne(Order, {
-        where: { id: savedOrder.id },
+        where: { id: savedOrder.id, tenantId },
         relations: ['items'],
       });
     });
   }
 
   // ============================================
-  // READ ALL (con filtros)
+  // READ ALL (por tenant)
   // ============================================
-  async findAll(query: QueryOrderDto) {
+  async findAll(query: QueryOrderDto, tenantId: string) {
     const { page = 1, limit = 20, status, paymentStatus, search } = query;
     const skip = (page - 1) * limit;
 
     const qb = this.ordersRepository
       .createQueryBuilder('order')
-      .leftJoinAndSelect('order.items', 'items');
+      .leftJoinAndSelect('order.items', 'items')
+      .where('order.tenantId = :tenantId', { tenantId });
 
     if (status) qb.andWhere('order.status = :status', { status });
-    if (paymentStatus)
-      qb.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
+    if (paymentStatus) qb.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
 
     if (search) {
       qb.andWhere(
@@ -198,20 +200,20 @@ export class OrdersService {
   // ============================================
   // MIS PEDIDOS
   // ============================================
-  async findMyOrders(userId: string) {
+  async findMyOrders(userId: string, tenantId: string) {
     return this.ordersRepository.find({
-      where: { userId },
+      where: { userId, tenantId },
       relations: ['items'],
       order: { createdAt: 'DESC' },
     });
   }
 
   // ============================================
-  // READ ONE
+  // READ ONE (validar tenant)
   // ============================================
-  async findOne(id: string): Promise<Order> {
+  async findOne(id: string, tenantId: string): Promise<Order> {
     const order = await this.ordersRepository.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: ['items', 'user'],
     });
 
@@ -225,9 +227,9 @@ export class OrdersService {
   // ============================================
   // READ BY NUMBER
   // ============================================
-  async findByNumber(orderNumber: string): Promise<Order> {
+  async findByNumber(orderNumber: string, tenantId: string): Promise<Order> {
     const order = await this.ordersRepository.findOne({
-      where: { orderNumber },
+      where: { orderNumber, tenantId },
       relations: ['items'],
     });
 
@@ -241,8 +243,8 @@ export class OrdersService {
   // ============================================
   // UPDATE STATUS
   // ============================================
-  async updateStatus(id: string, status: OrderStatus): Promise<Order> {
-    const order = await this.findOne(id);
+  async updateStatus(id: string, status: OrderStatus, tenantId: string): Promise<Order> {
+    const order = await this.findOne(id, tenantId);
     order.status = status;
 
     if (status === OrderStatus.SHIPPED) {
@@ -251,11 +253,12 @@ export class OrdersService {
       order.deliveredAt = new Date();
     } else if (status === OrderStatus.CANCELLED) {
       order.cancelledAt = new Date();
-      // Restaurar stock
+
+      // Restaurar stock del mismo tenant
       for (const item of order.items) {
         if (item.productId) {
           await this.productsRepository.increment(
-            { id: item.productId },
+            { id: item.productId, tenantId },
             'stock',
             item.quantity,
           );
@@ -272,8 +275,9 @@ export class OrdersService {
   async updatePaymentStatus(
     id: string,
     paymentStatus: PaymentStatus,
+    tenantId: string,
   ): Promise<Order> {
-    const order = await this.findOne(id);
+    const order = await this.findOne(id, tenantId);
     order.paymentStatus = paymentStatus;
 
     if (paymentStatus === PaymentStatus.PAID) {
@@ -289,8 +293,8 @@ export class OrdersService {
   // ============================================
   // CANCEL
   // ============================================
-  async cancel(id: string, reason?: string): Promise<Order> {
-    const order = await this.findOne(id);
+  async cancel(id: string, tenantId: string, reason?: string): Promise<Order> {
+    const order = await this.findOne(id, tenantId);
 
     if (
       [OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(
@@ -306,11 +310,10 @@ export class OrdersService {
     order.cancelReason = reason;
     order.cancelledAt = new Date();
 
-    // Restaurar stock
     for (const item of order.items) {
       if (item.productId) {
         await this.productsRepository.increment(
-          { id: item.productId },
+          { id: item.productId, tenantId },
           'stock',
           item.quantity,
         );
@@ -323,20 +326,24 @@ export class OrdersService {
   // ============================================
   // STATS
   // ============================================
-  async getStats() {
-    const total = await this.ordersRepository.count();
+  async getStats(tenantId: string) {
+    const total = await this.ordersRepository.count({
+      where: { tenantId },
+    });
 
     const byStatus = await this.ordersRepository
       .createQueryBuilder('order')
       .select('order.status', 'status')
       .addSelect('COUNT(*)', 'count')
+      .where('order.tenantId = :tenantId', { tenantId })
       .groupBy('order.status')
       .getRawMany();
 
     const revenue = await this.ordersRepository
       .createQueryBuilder('order')
       .select('SUM(order.total)', 'total')
-      .where('order.paymentStatus = :status', { status: PaymentStatus.PAID })
+      .where('order.tenantId = :tenantId', { tenantId })
+      .andWhere('order.paymentStatus = :status', { status: PaymentStatus.PAID })
       .getRawOne();
 
     return {
