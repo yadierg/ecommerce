@@ -19,6 +19,7 @@ import {
   Warehouse,
   Stock,
   Movement,
+  Supplier,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -48,6 +49,7 @@ export const getDatabaseConfig = (
     Order,
     OrderItem,
     Tenant,
+    Supplier,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

@@ -14,6 +14,7 @@ import {
 import { WarehousesModule } from '../modules/warehouses/warehouses.module';
 import { StocksModule } from '../modules/stocks/stocks.module';
 import { MovementsModule } from '../modules/movements/movements.module';
+import { SuppliersModule } from '../modules/suppliers/suppliers.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -39,6 +40,7 @@ import { AppService } from './app.service';
     WarehousesModule,
     StocksModule,
     MovementsModule,
+    SuppliersModule,  
   ],
   controllers: [AppController],
   providers: [

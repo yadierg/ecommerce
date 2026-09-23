@@ -16,3 +16,4 @@ export * from './tenant.entity';
 export * from './warehouse.entity'; 
 export * from './stock.entity';
 export * from './movement.entity'; 
+export * from './supplier.entity';
