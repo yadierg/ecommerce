@@ -1,9 +1,10 @@
+// apps/budget-api/webpack.config.js
 const { NxAppWebpackPlugin } = require('@nx/webpack/app-plugin');
 const { join } = require('path');
 
 module.exports = {
   output: {
-    path: join(__dirname, '../dist/budget-api'),
+    path: join(__dirname, '../../dist/apps/budget-api'),
     clean: true,
     ...(process.env.NODE_ENV !== 'production' && {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
@@ -15,7 +16,6 @@ module.exports = {
       compiler: 'tsc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
-      assets: ['./src/assets'],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
