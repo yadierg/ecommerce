@@ -17,3 +17,5 @@ export * from './warehouse.entity';
 export * from './stock.entity';
 export * from './movement.entity'; 
 export * from './supplier.entity';
+export * from './purchase-order.entity';
+export * from './purchase-order-item.entity';
