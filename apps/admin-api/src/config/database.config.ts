@@ -12,6 +12,9 @@ import {
   Category,
   Product,
   Tenant,
+  Warehouse,
+  Stock,
+  Movement,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -24,7 +27,21 @@ export const getDatabaseConfig = (
   password: configService.get('DB_PASSWORD', 'dev123'),
   database: configService.get('DB_NAME', 'ecommerce_dev'),
 
-  entities: [User, AuditLog, Setting, Role, Permission, Session, Notification, Category, Product, Tenant,],
+  entities: [
+    User, 
+    AuditLog, 
+    Setting, 
+    Role, 
+    Permission, 
+    Session, 
+    Notification, 
+    Category, 
+    Product, 
+    Tenant,
+    Warehouse,
+    Stock,
+    Movement,
+  ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',

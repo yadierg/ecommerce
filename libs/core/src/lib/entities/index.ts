@@ -13,4 +13,6 @@ export * from './cart-item.entity';
 export * from './order.entity';
 export * from './order-item.entity';
 export * from './tenant.entity';
-export * from './warehouse.entity';  // ← NUEVA
+export * from './warehouse.entity'; 
+export * from './stock.entity';
+export * from './movement.entity'; 

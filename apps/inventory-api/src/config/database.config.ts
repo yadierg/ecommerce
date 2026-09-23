@@ -16,7 +16,9 @@ import {
   CartItem,
   Order,
   OrderItem,
-  Warehouse,  // ← NUEVA
+  Warehouse, 
+  Stock,
+  Movement,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -45,6 +47,8 @@ export const getDatabaseConfig = (
     Order,
     OrderItem,
     Warehouse,
+    Stock,
+    Movement,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

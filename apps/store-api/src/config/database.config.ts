@@ -16,6 +16,9 @@ import {
   Order,
   OrderItem,
   Tenant,
+  Warehouse,
+  Stock,
+  Movement,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (

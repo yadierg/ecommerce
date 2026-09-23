@@ -12,6 +12,8 @@ import {
 } from '@ecommerce/auth';
 
 import { WarehousesModule } from '../modules/warehouses/warehouses.module';
+import { StocksModule } from '../modules/stocks/stocks.module';
+import { MovementsModule } from '../modules/movements/movements.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -34,7 +36,9 @@ import { AppService } from './app.service';
     SharedAuthModule,
 
     // Módulos
-    WarehousesModule,  // ← AGREGAR
+    WarehousesModule,
+    StocksModule,
+    MovementsModule,
   ],
   controllers: [AppController],
   providers: [
