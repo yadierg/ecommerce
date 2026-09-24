@@ -22,6 +22,8 @@ import {
   Supplier,
   PurchaseOrder,
   PurchaseOrderItem,
+  Client,
+  Worker,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -59,6 +61,8 @@ export const getDatabaseConfig = (
     PurchaseOrder,
     PurchaseOrderItem,
     // Budget (se agregará después)
+    Client,
+    Worker,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

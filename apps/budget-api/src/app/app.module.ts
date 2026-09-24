@@ -14,6 +14,9 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+import { ClientsModule } from '../modules/clients/clients.module';
+import { WorkersModule } from '../modules/workers/workers.module';
+
 @Module({
   imports: [
     // ============================================
@@ -39,6 +42,8 @@ import { AppService } from './app.service';
     // AUTH COMPARTIDO
     // ============================================
     SharedAuthModule,
+    ClientsModule,
+    WorkersModule,
   ],
   controllers: [AppController],
   providers: [
