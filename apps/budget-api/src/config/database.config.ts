@@ -24,6 +24,9 @@ import {
   PurchaseOrderItem,
   Client,
   Worker,
+  Budget,
+  BudgetItem,
+  BudgetLaborItem,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -37,7 +40,6 @@ export const getDatabaseConfig = (
   database: configService.get('DB_NAME', 'ecommerce_dev'),
 
   entities: [
-    // Multi-tenant base
     Tenant,
     User,
     Role,
@@ -46,23 +48,23 @@ export const getDatabaseConfig = (
     AuditLog,
     Setting,
     Notification,
-    // Store
     Category,
     Product,
     Cart,
     CartItem,
     Order,
     OrderItem,
-    // Inventory
     Warehouse,
     Stock,
     Movement,
     Supplier,
     PurchaseOrder,
     PurchaseOrderItem,
-    // Budget (se agregará después)
     Client,
     Worker,
+    Budget,
+    BudgetItem,
+    BudgetLaborItem,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

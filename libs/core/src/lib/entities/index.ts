@@ -19,5 +19,8 @@ export * from './movement.entity';
 export * from './supplier.entity';
 export * from './purchase-order.entity';
 export * from './purchase-order-item.entity';
-export * from './client.entity';  // ← AGREGAR
-export * from './worker.entity';  // ← AGREGAR  
+export * from './client.entity';
+export * from './worker.entity';
+export * from './budget.entity';             // ← AGREGAR
+export * from './budget-item.entity';        // ← AGREGAR
+export * from './budget-labor-item.entity';  // ← AGREGAR
