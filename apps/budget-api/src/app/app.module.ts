@@ -16,6 +16,7 @@ import { AppService } from './app.service';
 
 import { ClientsModule } from '../modules/clients/clients.module';
 import { WorkersModule } from '../modules/workers/workers.module';
+import { BudgetsModule } from '../modules/budgets/budgets.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { WorkersModule } from '../modules/workers/workers.module';
     SharedAuthModule,
     ClientsModule,
     WorkersModule,
+    BudgetsModule,
   ],
   controllers: [AppController],
   providers: [
