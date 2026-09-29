@@ -32,7 +32,9 @@ import {
   ProjectTask,
   ProjectMaterial,
   TimeLog,
+  Invoice,
 } from '@ecommerce/core';
+import { In } from 'typeorm';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -75,6 +77,7 @@ export const getDatabaseConfig = (
     ProjectTask,
     ProjectMaterial,
     TimeLog,
+    Invoice,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

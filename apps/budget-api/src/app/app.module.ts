@@ -22,6 +22,7 @@ import { PhasesModule } from '../modules/phases/phases.module';
 import { TasksModule } from '../modules/tasks/tasks.module';
 import { TimeLogsModule } from '../modules/timelogs/timelogs.module';
 import { MaterialsModule } from '../modules/materials/materials.module';
+import { InvoicesModule } from '../modules/invoices/invoices.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { MaterialsModule } from '../modules/materials/materials.module';
     TasksModule,
     TimeLogsModule,
     MaterialsModule,
+    InvoicesModule,
   ],
   controllers: [AppController],
   providers: [

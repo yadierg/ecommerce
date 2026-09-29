@@ -32,7 +32,9 @@ import {
   ProjectTask,
   ProjectMaterial,
   TimeLog,
+  Invoice,
 } from '@ecommerce/core';
+import { In } from 'typeorm';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -45,7 +47,6 @@ export const getDatabaseConfig = (
   database: configService.get('DB_NAME', 'ecommerce_dev'),
 
   entities: [
-    // Admin entities (compartidas)
     User,
     Role,
     Permission,
@@ -53,7 +54,6 @@ export const getDatabaseConfig = (
     AuditLog,
     Setting,
     Notification,
-    // Store entities
     Category,
     Product,
     Cart,
@@ -76,7 +76,8 @@ export const getDatabaseConfig = (
     ProjectPhase,
     ProjectTask,
     ProjectMaterial,
-    TimeLog,      
+    TimeLog, 
+    Invoice,     
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

@@ -29,3 +29,4 @@ export * from './project-phase.entity';
 export * from './project-task.entity';
 export * from './project-material.entity';
 export * from './time-log.entity';
+export * from './invoice.entity';
