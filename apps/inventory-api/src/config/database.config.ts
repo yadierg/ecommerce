@@ -33,6 +33,8 @@ import {
   ProjectMaterial,
   TimeLog,
   Invoice,
+  Warranty,
+  WarrantyClaim,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (

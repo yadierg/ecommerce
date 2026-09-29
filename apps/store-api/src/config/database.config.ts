@@ -33,6 +33,8 @@ import {
   ProjectMaterial,
   TimeLog,
   Invoice,
+  Warranty,
+  WarrantyClaim,
 } from '@ecommerce/core';
 import { In } from 'typeorm';
 
@@ -77,7 +79,9 @@ export const getDatabaseConfig = (
     ProjectTask,
     ProjectMaterial,
     TimeLog, 
-    Invoice,     
+    Invoice,
+    Warranty,
+    WarrantyClaim,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

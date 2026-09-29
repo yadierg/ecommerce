@@ -29,6 +29,8 @@ import {
   ProjectMaterial,
   TimeLog,
   Invoice,
+  Warranty,
+  WarrantyClaim,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -69,6 +71,8 @@ export const getDatabaseConfig = (
     ProjectMaterial,
     TimeLog,
     Invoice,
+    Warranty,
+    WarrantyClaim,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

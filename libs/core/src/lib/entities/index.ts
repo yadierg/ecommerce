@@ -30,3 +30,5 @@ export * from './project-task.entity';
 export * from './project-material.entity';
 export * from './time-log.entity';
 export * from './invoice.entity';
+export * from './warranty.entity';
+export * from './warranty-claim.entity';

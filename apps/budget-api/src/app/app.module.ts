@@ -23,6 +23,8 @@ import { TasksModule } from '../modules/tasks/tasks.module';
 import { TimeLogsModule } from '../modules/timelogs/timelogs.module';
 import { MaterialsModule } from '../modules/materials/materials.module';
 import { InvoicesModule } from '../modules/invoices/invoices.module';
+import { WarrantiesModule } from '../modules/warranties/warranties.module';
+import { ClaimsModule } from '../modules/claims/claims.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { InvoicesModule } from '../modules/invoices/invoices.module';
     TimeLogsModule,
     MaterialsModule,
     InvoicesModule,
+    WarrantiesModule,
+    ClaimsModule,
   ],
   controllers: [AppController],
   providers: [
