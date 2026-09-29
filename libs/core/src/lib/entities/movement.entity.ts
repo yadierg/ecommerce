@@ -24,6 +24,9 @@ export enum MovementType {
   DAMAGE = 'damage',
   LOSS = 'loss',
   INITIAL = 'initial',
+  // Proyectos
+  CONSUMPTION = 'consumption',         // Salida a proyecto
+  PROJECT_RETURN = 'project_return',   // Devolución de proyecto
 }
 
 @Entity({ name: 'movements' })

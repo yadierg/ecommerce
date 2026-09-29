@@ -21,6 +21,11 @@ export * from './purchase-order.entity';
 export * from './purchase-order-item.entity';
 export * from './client.entity';
 export * from './worker.entity';
-export * from './budget.entity';             // ← AGREGAR
-export * from './budget-item.entity';        // ← AGREGAR
-export * from './budget-labor-item.entity';  // ← AGREGAR
+export * from './budget.entity';    
+export * from './budget-item.entity';
+export * from './budget-labor-item.entity';  
+export * from './project.entity';
+export * from './project-phase.entity';
+export * from './project-task.entity';
+export * from './project-material.entity';
+export * from './time-log.entity';

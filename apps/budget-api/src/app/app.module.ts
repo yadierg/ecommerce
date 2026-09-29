@@ -17,6 +17,11 @@ import { AppService } from './app.service';
 import { ClientsModule } from '../modules/clients/clients.module';
 import { WorkersModule } from '../modules/workers/workers.module';
 import { BudgetsModule } from '../modules/budgets/budgets.module';
+import { ProjectsModule } from '../modules/projects/projects.module';
+import { PhasesModule } from '../modules/phases/phases.module';
+import { TasksModule } from '../modules/tasks/tasks.module';
+import { TimeLogsModule } from '../modules/timelogs/timelogs.module';
+import { MaterialsModule } from '../modules/materials/materials.module';
 
 @Module({
   imports: [
@@ -46,6 +51,11 @@ import { BudgetsModule } from '../modules/budgets/budgets.module';
     ClientsModule,
     WorkersModule,
     BudgetsModule,
+    ProjectsModule,
+    PhasesModule,
+    TasksModule,
+    TimeLogsModule,
+    MaterialsModule,
   ],
   controllers: [AppController],
   providers: [

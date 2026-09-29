@@ -23,6 +23,11 @@ import {
   Budget,
   BudgetItem,
   BudgetLaborItem,
+  Project,
+  ProjectPhase,
+  ProjectTask,
+  ProjectMaterial,
+  TimeLog,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -56,7 +61,12 @@ export const getDatabaseConfig = (
     Worker,
     Budget,
     BudgetItem,
-    BudgetLaborItem
+    BudgetLaborItem,
+    Project,
+    ProjectPhase,
+    ProjectTask,
+      ProjectMaterial,
+  TimeLog,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
