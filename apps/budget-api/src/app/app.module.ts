@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { getDatabaseConfig } from '../config/database.config';
 import {
@@ -25,21 +26,18 @@ import { MaterialsModule } from '../modules/materials/materials.module';
 import { InvoicesModule } from '../modules/invoices/invoices.module';
 import { WarrantiesModule } from '../modules/warranties/warranties.module';
 import { ClaimsModule } from '../modules/claims/claims.module';
+import { CronjobsModule } from '../modules/cronjobs/cronjobs.module';
 
 @Module({
   imports: [
-    // ============================================
-    // CONFIGURACIÓN GLOBAL (IMPRESCINDIBLE)
-    // ============================================
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
       cache: true,
     }),
 
-    // ============================================
-    // TYPEORM
-    // ============================================
+    ScheduleModule.forRoot(),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) =>
@@ -47,10 +45,8 @@ import { ClaimsModule } from '../modules/claims/claims.module';
       inject: [ConfigService],
     }),
 
-    // ============================================
-    // AUTH COMPARTIDO
-    // ============================================
     SharedAuthModule,
+
     ClientsModule,
     WorkersModule,
     BudgetsModule,
@@ -62,6 +58,8 @@ import { ClaimsModule } from '../modules/claims/claims.module';
     InvoicesModule,
     WarrantiesModule,
     ClaimsModule,
+
+    CronjobsModule,
   ],
   controllers: [AppController],
   providers: [

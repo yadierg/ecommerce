@@ -3,36 +3,34 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { getDatabaseConfig } from '../config/database.config';
 import {
   JwtAuthGuard,
   PermissionsGuard,
-  AuthModule as SharedAuthModule,  // ← NUEVO
+  AuthModule as SharedAuthModule,
 } from '@ecommerce/auth';
 
 import { CategoriesModule } from '../modules/categories/categories.module';
 import { ProductsModule } from '../modules/products/products.module';
 import { CartModule } from '../modules/cart/cart.module';
 import { OrdersModule } from '../modules/orders/orders.module';
+import { CronjobsModule } from '../modules/cronjobs/cronjobs.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
   imports: [
-    // ============================================
-    // CONFIGURACIÓN GLOBAL
-    // ============================================
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
       cache: true,
     }),
 
-    // ============================================
-    // TYPEORM - SOLO UNA CONEXIÓN
-    // ============================================
+    ScheduleModule.forRoot(),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) =>
@@ -40,18 +38,14 @@ import { AppService } from './app.service';
       inject: [ConfigService],
     }),
 
-    // ============================================
-    // AUTH COMPARTIDO (registra JwtStrategy)
-    // ============================================
-    SharedAuthModule,  // ← IMPORTANTE: Registrar JwtStrategy
+    SharedAuthModule,
 
-    // ============================================
-    // MÓDULOS DE LA APP
-    // ============================================
     CategoriesModule,
     ProductsModule,
     CartModule,
     OrdersModule,
+
+    CronjobsModule,
   ],
   controllers: [AppController],
   providers: [

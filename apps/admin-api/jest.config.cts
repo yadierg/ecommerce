@@ -1,10 +1,10 @@
 module.exports = {
   displayName: 'admin-api',
-  preset: '../jest.preset.js',
+  preset: '../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../coverage/admin-api',
+  coverageDirectory: '../../coverage/admin-api',  // ← También 2 niveles
 };
