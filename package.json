@@ -2,7 +2,17 @@
   "name": "@ecommerce/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "test": "nx run-many --target=test --projects=admin-api,budget-api,inventory-api,store-api",
+    "test:coverage": "nx run-many --target=test --projects=admin-api,budget-api,inventory-api,store-api --coverage",
+    "test:admin": "nx test admin-api",
+    "test:budget": "nx test budget-api",
+    "test:inventory": "nx test inventory-api",
+    "test:store": "nx test store-api",
+    "coverage": "node scripts/coverage-summary.js",
+    "lint": "nx run-many --target=lint --projects=admin-api,budget-api,inventory-api,store-api",
+    "build": "nx run-many --target=build --projects=admin-api,budget-api,inventory-api,store-api"
+  },
   "private": true,
   "dependencies": {
     "@nestjs/common": "^11.0.0",
