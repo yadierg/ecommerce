@@ -1,4 +1,6 @@
-// tools/jest/setup-after-env.js
+/// <reference types="node" />
+/// <reference types="jest" />
+
 afterAll(() => {
   if (typeof jest !== 'undefined') {
     jest.clearAllTimers();

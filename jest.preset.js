@@ -4,7 +4,7 @@ module.exports = {
   ...nxPreset,
   setupFilesAfterEnv: [
     ...(nxPreset.setupFilesAfterEnv || []),
-    '<rootDir>/../../tools/jest/setup-after-env.js',
+    '<rootDir>/../../tools/jest/setup-after-env.ts',  // ← .ts
   ],
   forceExit: true,
   detectOpenHandles: false,
