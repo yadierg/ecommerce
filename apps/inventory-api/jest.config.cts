@@ -6,5 +6,8 @@ module.exports = {
     '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/inventory-api',  // ← También 2 niveles
+  coverageDirectory: '../../coverage/inventory-api',
+  transformIgnorePatterns: [
+    'node_modules/(?!(@nestjs|@ecommerce)/)',
+  ],
 };
