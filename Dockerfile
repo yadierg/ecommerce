@@ -21,8 +21,6 @@ COPY jest.preset.js ./
 
 RUN npx nx build ${APP_NAME} --configuration=production --skip-nx-cache
 
-RUN npx nx run ${APP_NAME}:prune --skip-nx-cache || true
-
 # ============================================
 # STAGE 2: RUNTIME
 # ============================================
@@ -37,7 +35,15 @@ RUN apk add --no-cache dumb-init wget
 
 RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=builder /app/dist/apps/${APP_NAME}/ ./
+# ✅ Copiar SOLO el package.json de la app
+COPY --from=builder /app/dist/apps/${APP_NAME}/package*.json ./
+
+# ✅ Instalar SOLO las deps de producción de esta app
+RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund && \
+    npm cache clean --force
+
+# ✅ Copiar el bundle (main.js)
+COPY --from=builder /app/dist/apps/${APP_NAME}/main.js ./
 
 RUN chown -R app:app /app
 USER app
