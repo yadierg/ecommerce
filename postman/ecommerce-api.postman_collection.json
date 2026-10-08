@@ -1,0 +1,687 @@
+{
+  "info": {
+    "name": "Ecommerce Multi-Tenant API",
+    "description": "Colección completa para probar las APIs multi-tenant del ecommerce",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "admin_api",
+      "value": "http://localhost:3004",
+      "type": "string"
+    },
+    {
+      "key": "store_api",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "inventory_api",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "budget_api",
+      "value": "http://localhost:3003",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Admin API - Auth",
+      "item": [
+        {
+          "name": "1.1 Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Guardar token en variable de entorno",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.accessToken) {",
+                  "        pm.environment.set('super_admin_token', response.accessToken);",
+                  "        pm.environment.set('super_admin_refresh', response.refreshToken);",
+                  "        console.log('✅ Super Admin token guardado');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"Admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_api}}/auth/login",
+              "host": ["{{admin_api}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login del super admin. Guarda automáticamente el token."
+          }
+        },
+        {
+          "name": "1.2 Login Admin Instel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.accessToken) {",
+                  "        pm.environment.set('instel_admin_token', response.accessToken);",
+                  "        console.log('✅ Instel Admin token guardado');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@instel.com\",\n  \"password\": \"Instel123\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_api}}/auth/login",
+              "host": ["{{admin_api}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Login Admin TechnoStore",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.accessToken) {",
+                  "        pm.environment.set('techno_admin_token', response.accessToken);",
+                  "        console.log('✅ Techno Admin token guardado');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@technostore.com\",\n  \"password\": \"Techno123\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_api}}/auth/login",
+              "host": ["{{admin_api}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Mi Perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{admin_api}}/auth/profile",
+              "host": ["{{admin_api}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Requiere token. Muestra el perfil del usuario incluyendo tenantId."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin API - Tenants",
+      "item": [
+        {
+          "name": "2.1 Crear Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const tenant = pm.response.json();",
+                  "    pm.environment.set('new_tenant_id', tenant.id);",
+                  "    console.log('✅ Tenant creado:', tenant.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slug\": \"mi-empresa\",\n  \"name\": \"Mi Empresa S.A.\",\n  \"email\": \"contacto@miempresa.com\",\n  \"plan\": \"basic\",\n  \"maxUsers\": 5,\n  \"maxWarehouses\": 2\n}"
+            },
+            "url": {
+              "raw": "{{admin_api}}/tenants",
+              "host": ["{{admin_api}}"],
+              "path": ["tenants"]
+            },
+            "description": "Solo super_admin puede crear tenants."
+          }
+        },
+        {
+          "name": "2.2 Listar Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{admin_api}}/tenants",
+              "host": ["{{admin_api}}"],
+              "path": ["tenants"]
+            },
+            "description": "Solo super_admin. Lista todos los tenants con userCount."
+          }
+        },
+        {
+          "name": "2.3 Stats Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{admin_api}}/tenants/stats",
+              "host": ["{{admin_api}}"],
+              "path": ["tenants", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Admin API - Users",
+      "item": [
+        {
+          "name": "3.1 Crear Usuario (Super Admin crea para Instel)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const user = pm.response.json();",
+                  "    pm.environment.set('new_user_id', user.id);",
+                  "    console.log('✅ Usuario creado:', user.email, 'tenant:', user.tenantId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}",
+                "description": "Super admin especifica el tenant"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nuevo@instel.com\",\n  \"password\": \"Nuevo123\",\n  \"name\": \"Nuevo Usuario\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{admin_api}}/users",
+              "host": ["{{admin_api}}"],
+              "path": ["users"]
+            },
+            "description": "Super admin usa header x-tenant-id para asignar tenant."
+          }
+        },
+        {
+          "name": "3.2 Listar Todos los Usuarios (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{admin_api}}/users",
+              "host": ["{{admin_api}}"],
+              "path": ["users"]
+            },
+            "description": "Super admin sin header → ve TODOS los usuarios."
+          }
+        },
+        {
+          "name": "3.3 Listar Usuarios de Instel (Admin Instel)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{admin_api}}/users",
+              "host": ["{{admin_api}}"],
+              "path": ["users"]
+            },
+            "description": "Admin de Instel solo ve usuarios de su tenant. Usar token de Instel."
+          }
+        },
+        {
+          "name": "3.4 Stats Usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{admin_api}}/users/stats",
+              "host": ["{{admin_api}}"],
+              "path": ["users", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Store API - Categories",
+      "item": [
+        {
+          "name": "4.1 Crear Categoría (Instel)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const cat = pm.response.json();",
+                  "    pm.environment.set('category_instel_id', cat.id);",
+                  "    console.log('✅ Categoría creada:', cat.name);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electrónicos\",\n  \"description\": \"Productos electrónicos\",\n  \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{store_api}}/categories",
+              "host": ["{{store_api}}"],
+              "path": ["categories"]
+            }
+          }
+        },
+        {
+          "name": "4.2 Listar Categorías (con header)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/categories",
+              "host": ["{{store_api}}"],
+              "path": ["categories"]
+            },
+            "description": "Endpoint público. Requiere header x-tenant-id."
+          }
+        },
+        {
+          "name": "4.3 Listar Categorías (con token)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{store_api}}/categories",
+              "host": ["{{store_api}}"],
+              "path": ["categories"]
+            },
+            "description": "Usa token de Instel. Tenant del JWT."
+          }
+        },
+        {
+          "name": "4.4 Sin tenant (debe dar 400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{store_api}}/categories",
+              "host": ["{{store_api}}"],
+              "path": ["categories"]
+            },
+            "description": "Sin header ni token → error 400."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Store API - Products",
+      "item": [
+        {
+          "name": "5.1 Crear Producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const prod = pm.response.json();",
+                  "    pm.environment.set('product_id', prod.id);",
+                  "    console.log('✅ Producto creado:', prod.name);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPhone 15 Pro\",\n  \"sku\": \"IPH15-{{$timestamp}}\",\n  \"description\": \"El último iPhone\",\n  \"price\": 999.99,\n  \"stock\": 50,\n  \"brand\": \"Apple\",\n  \"isActive\": true,\n  \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{store_api}}/products",
+              "host": ["{{store_api}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "5.2 Listar Productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/products",
+              "host": ["{{store_api}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "5.3 Buscar Productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/products?search=iphone&minPrice=500&sortBy=price&sortOrder=ASC",
+              "host": ["{{store_api}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "search", "value": "iphone" },
+                { "key": "minPrice", "value": "500" },
+                { "key": "sortBy", "value": "price" },
+                { "key": "sortOrder", "value": "ASC" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.4 Productos Destacados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/products/featured",
+              "host": ["{{store_api}}"],
+              "path": ["products", "featured"]
+            }
+          }
+        },
+        {
+          "name": "5.5 Stats Productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/products/stats",
+              "host": ["{{store_api}}"],
+              "path": ["products", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Store API - Cart",
+      "item": [
+        {
+          "name": "6.1 Agregar al Carrito",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const cart = pm.response.json();",
+                  "    pm.environment.set('cart_id', cart.id);",
+                  "    if (cart.items && cart.items.length > 0) {",
+                  "        pm.environment.set('cart_item_id', cart.items[0].id);",
+                  "    }",
+                  "    console.log('✅ Carrito:', cart.id, 'subtotal:', cart.subtotal);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-session-id",
+                "value": "postman-session-{{$timestamp}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{store_api}}/cart/items",
+              "host": ["{{store_api}}"],
+              "path": ["cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "6.2 Ver Carrito",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-session-id",
+                "value": "postman-session-{{$timestamp}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/cart",
+              "host": ["{{store_api}}"],
+              "path": ["cart"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Store API - Orders",
+      "item": [
+        {
+          "name": "7.1 Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const order = pm.response.json();",
+                  "    pm.environment.set('order_id', order.id);",
+                  "    pm.environment.set('order_number', order.orderNumber);",
+                  "    console.log('✅ Orden:', order.orderNumber, 'total:', order.total);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-session-id",
+                "value": "postman-session-{{$timestamp}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Juan Pérez\",\n  \"customerEmail\": \"juan@test.com\",\n  \"customerPhone\": \"+5355551234\",\n  \"shippingAddress\": {\n    \"street\": \"Calle 123\",\n    \"city\": \"La Habana\",\n    \"state\": \"La Habana\",\n    \"postalCode\": \"10400\",\n    \"country\": \"Cuba\"\n  },\n  \"paymentMethod\": \"cash\",\n  \"notes\": \"Entregar en la tarde\"\n}"
+            },
+            "url": {
+              "raw": "{{store_api}}/orders/checkout",
+              "host": ["{{store_api}}"],
+              "path": ["orders", "checkout"]
+            }
+          }
+        },
+        {
+          "name": "7.2 Ver Orden por Número",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/orders/number/{{order_number}}",
+              "host": ["{{store_api}}"],
+              "path": ["orders", "number", "{{order_number}}"]
+            }
+          }
+        },
+        {
+          "name": "7.3 Marcar como Pagada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentStatus\": \"paid\"\n}"
+            },
+            "url": {
+              "raw": "{{store_api}}/orders/{{order_id}}/payment",
+              "host": ["{{store_api}}"],
+              "path": ["orders", "{{order_id}}", "payment"]
+            }
+          }
+        },
+        {
+          "name": "7.4 Stats Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_instel}}"
+              }
+            ],
+            "url": {
+              "raw": "{{store_api}}/orders/stats",
+              "host": ["{{store_api}}"],
+              "path": ["orders", "stats"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
