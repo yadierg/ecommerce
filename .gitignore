@@ -70,3 +70,5 @@ yarn-error.log*
 # Testing
 /test-output/
 /playwright-report/
+instelec-server
+instelec-server.pub
