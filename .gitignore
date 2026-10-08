@@ -70,3 +70,12 @@ yarn-error.log*
 # Testing
 /test-output/
 /playwright-report/
+
+# SSH Keys (NUNCA subir)
+*.pub
+instelec-server
+instelec-server.pub
+*.pem
+*.key
+id_rsa*
+id_ed25519*
