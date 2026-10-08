@@ -21,7 +21,6 @@ COPY jest.preset.js ./
 
 RUN npx nx build ${APP_NAME} --configuration=production --skip-nx-cache
 
-# Prune opcional (si falla, no rompe)
 RUN npx nx run ${APP_NAME}:prune --skip-nx-cache || true
 
 # ============================================
@@ -34,7 +33,7 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-RUN apk add --no-cache dumb-init curl
+RUN apk add --no-cache dumb-init wget
 
 RUN addgroup -S app && adduser -S app -G app
 
@@ -44,9 +43,6 @@ RUN chown -R app:app /app
 USER app
 
 EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000}/ || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "main.js"]
