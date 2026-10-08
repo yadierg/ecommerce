@@ -24,6 +24,10 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Postman
+postman/*
+ecommerce-api.postman_collection.json
+
 # misc
 /.sass-cache
 /connect.lock
@@ -43,3 +47,26 @@ Thumbs.db
 .nx/migrate-runs
 .claude/worktrees
 .claude/settings.local.json
+
+# Coverage
+coverage/
+!coverage/.gitkeep
+
+# Nx
+.nx/cache/
+.nx/workspace-data/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+/test-output/
+/playwright-report/
