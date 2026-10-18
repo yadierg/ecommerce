@@ -91,7 +91,7 @@ export const getDatabaseConfig = (
     configService.get('NODE_ENV') === 'development' || 
     configService.get('DB_SYNC') === 'true',
   logging: configService.get('NODE_ENV') === 'development' ? 'all' : ['error'],
-  ssl: configService.get('NODE_ENV') === 'production'
+  ssl: configService.get('DB_SSL') === 'true'
     ? { rejectUnauthorized: false }
     : false,
 
