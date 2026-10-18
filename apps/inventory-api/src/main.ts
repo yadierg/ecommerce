@@ -44,7 +44,7 @@ async function bootstrap() {
     logger.log(`📚 Swagger: http://localhost:${port}/api/docs`);
   }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   logger.log(`📦 Inventory API corriendo en: http://localhost:${port}`);
 }
 
