@@ -35,14 +35,17 @@ RUN apk add --no-cache dumb-init wget
 
 RUN addgroup -S app && adduser -S app -G app
 
-# ✅ Copiar SOLO el package.json de la app
+# ✅ Copiar el package.json generado por Nx
 COPY --from=builder /app/dist/apps/${APP_NAME}/package*.json ./
 
-# ✅ Instalar SOLO las deps de producción de esta app
-RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund && \
-    npm cache clean --force
+# ✅ Instalar deps de producción + pg explícito + reflect-metadata
+RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund \
+    pg \
+    reflect-metadata \
+    rxjs \
+    && npm cache clean --force
 
-# ✅ Copiar el bundle (main.js)
+# ✅ Copiar el bundle
 COPY --from=builder /app/dist/apps/${APP_NAME}/main.js ./
 
 RUN chown -R app:app /app
