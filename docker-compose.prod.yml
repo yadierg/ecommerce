@@ -240,10 +240,14 @@ services:
     container_name: ecommerce-nginx
     restart: unless-stopped
     depends_on:
-      - admin-api
-      - budget-api
-      - inventory-api
-      - store-api
+      admin-api:
+        condition: service_started    # ← era "service_healthy" por defecto
+      budget-api:
+        condition: service_started
+      inventory-api:
+        condition: service_started
+      store-api:
+        condition: service_started
     ports:
       - "80:80"
       - "443:443"
