@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsBoolean,
   IsIn,
+  Allow,
 } from 'class-validator';
 
 export class CreateSettingDto {
@@ -15,7 +16,7 @@ export class CreateSettingDto {
   key: string;
 
   @ApiProperty({ example: 'Mi Ecommerce' })
-  @IsOptional()  // Bugs arreglado
+  @Allow()   // Bug fix
   value: any;
 
   @ApiProperty({ example: 'general' })
