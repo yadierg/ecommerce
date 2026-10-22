@@ -15,6 +15,7 @@ export class CreateSettingDto {
   key: string;
 
   @ApiProperty({ example: 'Mi Ecommerce' })
+  @IsOptional()  // Bugs arreglado
   value: any;
 
   @ApiProperty({ example: 'general' })
