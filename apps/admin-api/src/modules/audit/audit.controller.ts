@@ -1,4 +1,3 @@
-// apps/admin-api/src/modules/audit/audit.controller.ts
 import {
   Controller,
   Get,
@@ -15,11 +14,13 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { Roles } from '@ecommerce/auth';         // ← AÑADIR
 import { AuditService } from './audit.service';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 
 @ApiTags('audit')
 @Controller('audit')
+@Roles('admin', 'super_admin')                    // ← AÑADIR
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 

@@ -1,4 +1,3 @@
-// apps/admin-api/src/modules/roles/roles.controller.ts
 import {
   Controller,
   Get,
@@ -12,12 +11,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { Roles } from '@ecommerce/auth';        // ← AÑADIR
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
 @ApiTags('roles')
 @Controller('roles')
+@Roles('admin', 'super_admin')                  // ← AÑADIR (protege todo el controller)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
