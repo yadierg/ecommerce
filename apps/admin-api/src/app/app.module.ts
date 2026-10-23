@@ -9,6 +9,7 @@ import { getDatabaseConfig } from '../config/database.config';
 import {
   JwtAuthGuard,
   PermissionsGuard,
+  RolesGuard,                    // ← AÑADIR
   AuthModule as SharedAuthModule,
 } from '@ecommerce/auth';
 
@@ -63,6 +64,10 @@ import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,        // ← AÑADIR AQUÍ
     },
     {
       provide: APP_GUARD,
