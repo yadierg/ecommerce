@@ -17,6 +17,7 @@ import { CurrentUser, Roles } from '@ecommerce/auth';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -104,5 +105,24 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Patch(':id/role')
+  @Roles('admin', 'super_admin')
+  @ApiOperation({ summary: 'Asignar rol a un usuario' })
+  assignRole(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AssignRoleDto,
+    @CurrentUser('id') adminUserId: string,
+    @CurrentUser('tenantId') adminTenantId: string | null,
+    @CurrentUser('isSuperAdmin') adminIsSuperAdmin: boolean,
+  ) {
+    return this.usersService.assignRole(
+      id,
+      dto.role,
+      adminUserId,
+      adminTenantId,
+      adminIsSuperAdmin,
+    );
   }
 }

@@ -25,6 +25,7 @@ import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';  // ← AGREGAR
 import { LoginDto } from './dto/login.dto';           // ← AGREGAR
 import { RegisterDto } from './dto/register.dto';     // ← AGREGAR
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -109,7 +110,7 @@ export class AuthService {
   // REGISTER
   // ============================================
   async register(registerDto: RegisterDto) {
-    // Verificar si existe
+    // 1. Verificar si existe
     const existing = await this.usersRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -118,55 +119,65 @@ export class AuthService {
       throw new ConflictException('El email ya está registrado');
     }
 
-    // Buscar rol por defecto
+    // 2. Buscar rol por defecto (SIEMPRE 'user')
     const defaultRole = await this.rolesRepository.findOne({
-      where: { name: registerDto.role || 'user' },
+      where: { name: 'user' },
     });
 
-    // Crear usuario
+    if (!defaultRole) {
+      throw new NotFoundException(
+        'El rol "user" no existe. Contacta al administrador.',
+      );
+    }
+
+    // 3. Crear usuario con valores FORZADOS
     const user = this.usersRepository.create({
       email: registerDto.email,
       password: registerDto.password,
       name: registerDto.name,
-      role: registerDto.role || 'user',
-      roles: defaultRole ? [defaultRole] : [],
+      role: 'user',                 // ← FORZADO
+      isActive: true,                // ← FORZADO
+      isSuperAdmin: false,           // ← FORZADO
+      tenantId: registerDto.tenantId || null,
+      roles: [defaultRole],          // ← SOLO 'user'
     });
 
     const saved = await this.usersRepository.save(user);
 
-    // Log
+    // 4. Audit log
     await this.auditService.log({
       userId: saved.id,
       action: 'register',
       entity: 'auth',
       entityId: saved.id,
-      description: `Usuario registrado: ${saved.email}`,
+      description: `Usuario registrado: ${saved.email} (rol: user)`,
     });
 
     delete saved.password;
 
-    // Notificar a los admins
+    // 5. Notificar a los admins
     await this.notificationsService.notifyAll({
       title: '🎉 Nuevo usuario registrado',
-      message: `${saved.name} (${saved.email}) se ha registrado`,
+      message: `${saved.name} (${saved.email}) se ha registrado y requiere asignación de permisos`,
       type: NotificationType.INFO,
       priority: NotificationPriority.NORMAL,
       category: 'user',
       metadata: { userId: saved.id },
       actionUrl: `/users/${saved.id}`,
-      actionLabel: 'Ver usuario',
+      actionLabel: 'Asignar permisos',
     });
 
     return {
-      message: 'Usuario registrado exitosamente',
+      message:
+        'Registro exitoso. Un administrador te asignará permisos pronto.',
       user: {
         id: saved.id,
         email: saved.email,
         name: saved.name,
+        role: 'user',
       },
     };
   }
-
   // ============================================
   // REFRESH TOKEN
   // ============================================
@@ -340,5 +351,83 @@ export class AuthService {
       order: { createdAt: 'DESC' },
       select: ['id', 'ipAddress', 'userAgent', 'lastUsedAt', 'createdAt', 'expiresAt'],
     });
+  }
+
+  // ============================================
+  // CHANGE PASSWORD
+  // ============================================
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    // 1. Buscar usuario CON password
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :userId', { userId })
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // 2. Verificar password actual
+    const isCurrentPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Contraseña actual incorrecta');
+    }
+
+    // 3. Verificar que la nueva sea diferente
+    const isSamePassword = await bcrypt.compare(dto.newPassword, user.password);
+
+    if (isSamePassword) {
+      throw new ConflictException(
+        'La nueva contraseña debe ser diferente a la actual',
+      );
+    }
+
+    // 4. Actualizar password (se hashea automáticamente en @BeforeUpdate)
+    user.password = dto.newPassword;
+    await this.usersRepository.save(user);
+
+    // 5. Invalidar TODAS las sesiones (logout forzado)
+    await this.sessionsRepository.update(
+      { userId, isActive: true },
+      { isActive: false },
+    );
+
+    // 6. Audit log
+    await this.auditService.log({
+      userId,
+      action: 'change_password',
+      entity: 'auth',
+      entityId: userId,
+      description: 'Contraseña actualizada. Sesiones invalidadas.',
+      ipAddress,
+      userAgent,
+    });
+
+    // 7. Notificar al usuario
+    await this.notificationsService.create({
+      userId,
+      title: '🔒 Contraseña cambiada',
+      message:
+        'Tu contraseña ha sido actualizada. Todas tus sesiones han sido cerradas por seguridad.',
+      type: NotificationType.WARNING,
+      priority: NotificationPriority.HIGH,
+      category: 'security',
+      metadata: { ipAddress, userAgent },
+    });
+
+    return {
+      message:
+        'Contraseña actualizada. Por favor, inicia sesión de nuevo con tu nueva contraseña.',
+    };
   }
 }
