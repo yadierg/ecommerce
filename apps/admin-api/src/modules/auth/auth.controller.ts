@@ -20,6 +20,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';                 // ← AGREGAR
 import { RegisterDto } from './dto/register.dto';           // ← AGREGAR
 import { RefreshTokenDto } from './dto/refresh-token.dto';  // ← AGREGAR
+import { ChangePasswordDto } from './dto/change-password.dto';  // ← AGREGAR
 
 @ApiTags('auth')
 @Controller('auth')
@@ -81,5 +82,21 @@ export class AuthController {
   @ApiOperation({ summary: 'Ver sesiones activas' })
   getSessions(@CurrentUser('id') userId: string) {
     return this.authService.getSessions(userId);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cambiar contraseña (requiere autenticación)' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
+  @ApiResponse({ status: 401, description: 'Contraseña actual incorrecta' })
+  changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
+  ) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.changePassword(userId, dto, ipAddress, userAgent);
   }
 }

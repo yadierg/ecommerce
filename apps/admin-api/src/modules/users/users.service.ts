@@ -10,13 +10,19 @@ import { User, NotificationType, NotificationPriority } from '@ecommerce/core';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from '@ecommerce/core';
+import { AuditService } from '../audit/audit.service';
+
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly rolesRepository: Repository<Role>,
     private readonly notificationsService: NotificationsService,
+    private readonly auditService: AuditService,
   ) {}
 
   // ============================================
@@ -197,5 +203,77 @@ export class UsersService {
       admins,
       regularUsers: total - admins,
     };
+  }
+
+  // ============================================
+  // ASSIGN ROLE
+  // ============================================
+  async assignRole(
+    id: string,
+    roleName: string,
+    adminUserId: string,
+    adminTenantId?: string | null,
+    adminIsSuperAdmin?: boolean,
+  ): Promise<User> {
+    // 1. Buscar usuario
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['roles'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // 2. Validar tenant (si no es super admin, solo su tenant)
+    if (!adminIsSuperAdmin && user.tenantId !== adminTenantId) {
+      throw new ConflictException('No puedes modificar usuarios de otros tenants');
+    }
+
+    // 3. Buscar el rol
+    const newRole = await this.rolesRepository.findOne({
+      where: { name: roleName },
+    });
+
+    if (!newRole) {
+      throw new NotFoundException(`El rol "${roleName}" no existe`);
+    }
+
+    // 4. Guardar rol anterior
+    const previousRole = user.role;
+
+    // 5. Actualizar rol
+    user.role = roleName;
+    user.roles = [newRole];
+
+    const updated = await this.usersRepository.save(user);
+
+    // 6. Audit log
+    await this.auditService.log({
+      userId: adminUserId,
+      action: 'assign_role',
+      entity: 'user',
+      entityId: user.id,
+      description: `Rol asignado: ${previousRole} → ${roleName} para ${user.email}`,
+      changes: { from: previousRole, to: roleName },
+    });
+
+    // 7. Notificar al usuario
+    await this.notificationsService.create({
+      userId: user.id,
+      title: '🔑 Tu rol ha cambiado',
+      message: `Tu rol ahora es "${roleName}". Contacta al administrador si tienes dudas.`,
+      type: NotificationType.INFO,
+      priority: NotificationPriority.NORMAL,
+      category: 'user',
+      metadata: { previousRole, newRole: roleName },
+    });
+
+    // 8. Invalidar sesiones (para que el JWT se regenere con nuevos permisos)
+    // Nota: No es estrictamente necesario, el usuario puede seguir con su token actual
+    // hasta que expire (15 min). Pero es más seguro forzar re-login.
+
+    delete updated.password;
+    return updated;
   }
 }
