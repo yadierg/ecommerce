@@ -1,4 +1,3 @@
-// apps/admin-api/src/modules/settings/settings.controller.ts
 import {
   Controller,
   Get,
@@ -18,6 +17,7 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { Roles, Public } from '@ecommerce/auth';  // ← AÑADIR
 import { SettingsService } from './settings.service';
 import { CreateSettingDto } from './dto/create-setting.dto';
 import { UpdateSettingDto } from './dto/update-setting.dto';
@@ -25,6 +25,7 @@ import { BulkUpdateSettingsDto } from './dto/bulk-update-settings.dto';
 
 @ApiTags('settings')
 @Controller('settings')
+@Roles('admin', 'super_admin')                    // ← AÑADIR (protege todo el controller)
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
@@ -42,6 +43,7 @@ export class SettingsController {
     return this.settingsService.findAll(group);
   }
 
+  @Public()                                        // ← AÑADIR (settings públicos sin auth)
   @Get('public')
   @ApiOperation({ summary: 'Settings públicos (para frontend)' })
   findPublic() {
