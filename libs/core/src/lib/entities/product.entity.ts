@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { Category } from './category.entity';
 import { Tenant } from './tenant.entity';
+import { UnitOfMeasure } from './unit-of-measure.entity';
 
 @Entity({ name: 'products' })
 export class Product {
@@ -69,6 +70,18 @@ export class Product {
   @Column({ name: 'tenant_id', nullable: true })
   @Index()
   tenantId?: string | null;
+
+  @Column({ name: 'unit_of_measure_id', nullable: true })
+  @Index()
+  unitOfMeasureId?: string;
+
+  @ManyToOne(() => UnitOfMeasure, (unit) => unit.products, {
+    onDelete: 'SET NULL',
+    nullable: true,
+    eager: true,
+  })
+  @JoinColumn({ name: 'unit_of_measure_id' })
+  unitOfMeasure?: UnitOfMeasure;
 
   @ManyToOne(() => Tenant, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'tenant_id' })

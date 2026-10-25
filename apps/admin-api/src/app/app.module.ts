@@ -25,6 +25,7 @@ import { AuthModule } from '../modules/auth/auth.module';
 import { NotificationsModule } from '../modules/notifications/notifications.module';
 import { TenantsModule } from '../modules/tenants/tenants.module';
 import { CronjobsModule } from '../modules/cronjobs/cronjobs.module';
+import { UnitsOfMeasureModule } from '../modules/units-of-measure/units-of-measure.module';
 
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
@@ -55,7 +56,7 @@ import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
     PermissionsModule,
     NotificationsModule,
     TenantsModule,
-
+    UnitsOfMeasureModule,
     CronjobsModule,
   ],
   controllers: [AppController],
