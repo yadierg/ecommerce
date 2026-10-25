@@ -32,3 +32,4 @@ export * from './time-log.entity';
 export * from './invoice.entity';
 export * from './warranty.entity';
 export * from './warranty-claim.entity';
+export * from './unit-of-measure.entity';
