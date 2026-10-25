@@ -1,4 +1,4 @@
-// apps/inventory-api/src/modules/stocks/stocks.service.ts
+/// apps/inventory-api/src/modules/stocks/stocks.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -8,12 +8,19 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThanOrEqual, MoreThan } from 'typeorm';
-import { Stock, Product, Warehouse } from '@ecommerce/core';
+import {
+  Stock,
+  Product,
+  Warehouse,
+  Movement,          // ← AÑADIR
+  MovementType,      // ← AÑADIR
+} from '@ecommerce/core';
 import { CreateStockDto } from './dto/create-stock.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { TransferStockDto } from './dto/transfer-stock.dto';
 import { QueryStockDto } from './dto/query-stock.dto';
+import { InitialStockDto } from './dto/initial-stock.dto';  // ← AÑADIR
 
 @Injectable()
 export class StocksService {
@@ -400,5 +407,158 @@ export class StocksService {
       outOfStockCount,
       byWarehouse,
     };
+  }
+
+  // ============================================
+  // INITIAL STOCK (Carga inicial de inventario)
+  // ============================================
+  async initialStock(
+    dto: InitialStockDto,
+    tenantId: string,
+    userId?: string,
+  ): Promise<{
+    created: number;
+    updated: number;
+    movements: number;
+    details: Array<{
+      productId: string;
+      productName: string;
+      quantity: number;
+      stockBefore: number;
+      stockAfter: number;
+      action: 'created' | 'updated';
+    }>;
+  }> {
+    // 1. Validar almacén
+    const warehouse = await this.warehousesRepository.findOne({
+      where: { id: dto.warehouseId, tenantId },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Almacén no encontrado en tu empresa');
+    }
+
+    let created = 0;
+    let updated = 0;
+    let movements = 0;
+    const details: Array<{
+      productId: string;
+      productName: string;
+      quantity: number;
+      stockBefore: number;
+      stockAfter: number;
+      action: 'created' | 'updated';
+    }> = [];
+
+    // 2. Transacción: procesar todos los items
+    await this.dataSource.transaction(async (manager) => {
+      for (const item of dto.items) {
+        // 2.1 Validar producto
+        const product = await manager.findOne(Product, {
+          where: { id: item.productId, tenantId },
+        });
+
+        if (!product) {
+          throw new BadRequestException(
+            `Producto ${item.productId} no encontrado en tu empresa`,
+          );
+        }
+
+        // 2.2 Buscar stock existente
+        let stock = await manager.findOne(Stock, {
+          where: {
+            tenantId,
+            warehouseId: dto.warehouseId,
+            productId: item.productId,
+          },
+        });
+
+        const stockBefore = Number(stock?.quantity) || 0;
+        const quantity = Number(item.quantity) || 0;
+        const stockAfter = stockBefore + quantity;
+
+        let action: 'created' | 'updated';
+
+        if (!stock) {
+          // 2.3 Crear stock nuevo
+          stock = manager.create(Stock, {
+            tenantId,
+            warehouseId: dto.warehouseId,
+            productId: item.productId,
+            quantity,
+            reservedQuantity: 0,
+            minStock: 0,
+            location: item.location,
+            notes: item.notes
+              ? `[Carga inicial]: ${item.notes}`
+              : '[Carga inicial de inventario]',
+          });
+          await manager.save(stock);
+          created++;
+          action = 'created';
+        } else {
+          // 2.4 Actualizar stock existente
+          stock.quantity = stockAfter;
+          if (item.location) stock.location = item.location;
+          if (item.notes) {
+            stock.notes = stock.notes
+              ? `${stock.notes}\n[Carga inicial]: ${item.notes}`
+              : `[Carga inicial]: ${item.notes}`;
+          }
+          await manager.save(stock);
+          updated++;
+          action = 'updated';
+        }
+
+        // 2.5 Crear movimiento INITIAL para trazabilidad
+        const movement = manager.create(Movement, {
+          tenantId,
+          warehouseId: dto.warehouseId,
+          productId: item.productId,
+          userId,
+          type: MovementType.INITIAL,
+          quantity,
+          stockBefore,
+          stockAfter,
+          referenceType: 'initial_stock',
+          referenceId: null,
+          reason:
+            dto.reason ||
+            'Carga inicial de inventario (sin proveedor ni factura)',
+          notes: [
+            item.lotNumber ? `Lote: ${item.lotNumber}` : null,
+            item.estimatedAcquisitionDate
+              ? `Fecha estimada: ${item.estimatedAcquisitionDate}`
+              : null,
+            item.unitCost ? `Costo estimado: ${item.unitCost}` : null,
+            item.notes ? `Notas: ${item.notes}` : null,
+          ]
+            .filter(Boolean)
+            .join(' | '),
+        });
+        await manager.save(movement);
+        movements++;
+
+        // 2.6 Añadir al detalle
+        details.push({
+          productId: item.productId,
+          productName: product.name,
+          quantity,
+          stockBefore,
+          stockAfter,
+          action,
+        });
+
+        this.logger.log(
+          `📦 [INITIAL] ${product.name}: +${quantity} (${stockBefore} → ${stockAfter})`,
+        );
+      }
+    });
+
+    this.logger.log(
+      `✅ Carga inicial completa: ${created} creados, ${updated} actualizados, ${movements} movimientos (Almacén: ${warehouse.name})`,
+    );
+
+    return { created, updated, movements, details };
   }
 }
