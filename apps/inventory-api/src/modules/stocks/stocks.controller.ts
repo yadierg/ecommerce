@@ -27,6 +27,7 @@ import { UpdateStockDto } from './dto/update-stock.dto';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { TransferStockDto } from './dto/transfer-stock.dto';
 import { QueryStockDto } from './dto/query-stock.dto';
+import { InitialStockDto } from './dto/initial-stock.dto';
 
 @ApiTags('stocks')
 @Controller('stocks')
@@ -215,4 +216,24 @@ export class StocksController {
     const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
     return this.stocksService.remove(id, tenantId);
   }
+
+  // ============================================
+  // INITIAL STOCK (Carga inicial)
+  // ============================================
+  @Post('initial')
+  @ApiOperation({
+    summary: 'Carga inicial de inventario (productos sin trazabilidad previa)',
+    description:
+      'Carga productos existentes en el almacén físico sin proveedor ni factura asociada. Crea movimientos tipo INITIAL para trazabilidad.',
+  })
+  initialStock(
+    @Body() dto: InitialStockDto,
+    @CurrentUser('tenantId') userTenantId: string | null,
+    @CurrentUser('id') userId: string,
+    @Headers('x-tenant-id') headerTenantId?: string,
+  ) {
+    const tenantId = this.resolveTenantId(userTenantId, headerTenantId);
+    return this.stocksService.initialStock(dto, tenantId, userId);
+  }
+
 }
