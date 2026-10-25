@@ -35,6 +35,7 @@ import {
   Invoice,
   Warranty,
   WarrantyClaim,
+  UnitOfMeasure,
 } from '@ecommerce/core';
 import { In } from 'typeorm';
 
@@ -82,6 +83,7 @@ export const getDatabaseConfig = (
     Invoice,
     Warranty,
     WarrantyClaim,
+    UnitOfMeasure,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
