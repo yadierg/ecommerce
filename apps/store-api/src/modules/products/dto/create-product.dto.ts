@@ -68,7 +68,7 @@ export class CreateProductDto {
   @IsOptional()
   categoryId?: string;
 
-  // ✅ AÑADIR ESTO
+  // ✅ FIX: añadir decoradores
   @ApiProperty({
     required: false,
     example: 'uuid-unit-of-measure',
