@@ -23,9 +23,15 @@ async function bootstrap() {
   );
 
   // CORS
+  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN', '*'),
+    origin:
+      corsOrigin === '*'
+        ? true
+        : corsOrigin.split(',').map((o) => o.trim()).filter(Boolean),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
   });
 
   // Swagger
