@@ -54,6 +54,7 @@ const mockAuditService = {
 
 const mockNotificationsService = {
   notifyAll: jest.fn(),
+  create: jest.fn(),
 };
 
 // ============================================
@@ -270,7 +271,11 @@ describe('AuthService', () => {
 
       const result = await service.register(registerDto);
 
-      expect(result).toHaveProperty('message', 'Usuario registrado exitosamente');
+      // ✅ FIX: el mensaje de retorno cambió en el commit 8c3c8c3
+      expect(result).toHaveProperty(
+        'message',
+        'Registro exitoso. Un administrador te asignará permisos pronto.',
+      );
       expect(result.user.email).toBe('new@example.com');
       expect(usersRepository.save).toHaveBeenCalled();
       expect(auditService.log).toHaveBeenCalledWith(
@@ -293,25 +298,18 @@ describe('AuthService', () => {
       );
     });
 
-    it('should register user without default role if role not found', async () => {
-      const mockUser = {
-        id: 'user-1',
-        email: 'new@example.com',
-        name: 'New User',
-        role: 'user',
-        password: 'hashed',
-      };
-
+    // ✅ FIX: el service ahora SÍ lanza NotFoundException si el rol 'user' no existe
+    //         (commit 8c3c8c3, "force user role on register")
+    it('should throw NotFoundException if default role "user" does not exist', async () => {
       usersRepository.findOne.mockResolvedValue(null);
       rolesRepository.findOne.mockResolvedValue(null);
-      usersRepository.create.mockReturnValue({ ...mockUser, roles: [] });
-      usersRepository.save.mockResolvedValue({ ...mockUser, roles: [] });
-      auditService.log.mockResolvedValue({});
-      notificationsService.notifyAll.mockResolvedValue({});
 
-      const result = await service.register(registerDto);
-
-      expect(result.user.email).toBe('new@example.com');
+      await expect(service.register(registerDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.register(registerDto)).rejects.toThrow(
+        'El rol "user" no existe. Contacta al administrador.',
+      );
     });
   });
 
@@ -361,7 +359,7 @@ describe('AuthService', () => {
         id: 'session-1',
         refreshToken: 'expired-token',
         isActive: true,
-        expiresAt: new Date(Date.now() - 100000), // Expirado
+        expiresAt: new Date(Date.now() - 100000),
       };
 
       sessionsRepository.findOne.mockResolvedValue(expiredSession);
@@ -494,6 +492,116 @@ describe('AuthService', () => {
         expect.objectContaining({
           where: { userId: 'user-1', isActive: true },
         }),
+      );
+    });
+  });
+
+  // ============================================
+  // CHANGE PASSWORD (nuevo método del commit 8c3c8c3)
+  // ============================================
+  describe('changePassword', () => {
+    const changePasswordDto = {
+      currentPassword: 'oldPassword123',
+      newPassword: 'newPassword456',
+    };
+
+    it('should change password and invalidate sessions', async () => {
+      const hashedOld = await bcrypt.hash('oldPassword123', 10);
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        password: hashedOld,
+      };
+
+      const mockQueryBuilder = {
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockUser),
+      };
+
+      usersRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      usersRepository.save.mockResolvedValue(mockUser);
+      sessionsRepository.update.mockResolvedValue({ affected: 2 });
+      auditService.log.mockResolvedValue({});
+      notificationsService.create.mockResolvedValue({});
+
+      const result = await service.changePassword(
+        'user-1',
+        changePasswordDto,
+        '127.0.0.1',
+        'jest-test',
+      );
+
+      expect(result).toHaveProperty('message');
+      expect(result.message).toContain('Contraseña actualizada');
+      expect(sessionsRepository.update).toHaveBeenCalledWith(
+        { userId: 'user-1', isActive: true },
+        { isActive: false },
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'change_password' }),
+      );
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      const mockQueryBuilder = {
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      };
+
+      usersRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      await expect(
+        service.changePassword('user-1', changePasswordDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw UnauthorizedException if current password is wrong', async () => {
+      const hashedOld = await bcrypt.hash('oldPassword123', 10);
+      const mockUser = {
+        id: 'user-1',
+        password: hashedOld,
+      };
+
+      const mockQueryBuilder = {
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockUser),
+      };
+
+      usersRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      await expect(
+        service.changePassword('user-1', {
+          currentPassword: 'wrong-password',
+          newPassword: 'newPassword456',
+        }),
+      ).rejects.toThrow('Contraseña actual incorrecta');
+    });
+
+    it('should throw ConflictException if new password equals current', async () => {
+      const hashedOld = await bcrypt.hash('oldPassword123', 10);
+      const mockUser = {
+        id: 'user-1',
+        password: hashedOld,
+      };
+
+      const mockQueryBuilder = {
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockUser),
+      };
+
+      usersRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+
+      await expect(
+        service.changePassword('user-1', {
+          currentPassword: 'oldPassword123',
+          newPassword: 'oldPassword123',
+        }),
+      ).rejects.toThrow(
+        'La nueva contraseña debe ser diferente a la actual',
       );
     });
   });
