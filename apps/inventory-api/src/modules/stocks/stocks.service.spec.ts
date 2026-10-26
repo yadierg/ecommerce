@@ -9,7 +9,7 @@ import {
 import { DataSource } from 'typeorm';
 
 import { StocksService } from './stocks.service';
-import { Stock, Product, Warehouse } from '@ecommerce/core';
+import { Stock, Product, Warehouse, Movement } from '@ecommerce/core';
 
 // ============================================
 // MOCKS
@@ -252,13 +252,10 @@ describe('StocksService', () => {
         Promise.resolve(data),
       );
 
-      await service.upsert(
-        { ...validDto, minStock: 20 },
-        'tenant-1',
-      );
+      await service.upsert({ ...validDto, minStock: 20 }, 'tenant-1');
 
       expect(existing.minStock).toBe(20);
-      expect(existing.location).toBe('OLD'); // sin cambios
+      expect(existing.location).toBe('OLD');
     });
 
     it('should not update optional fields when undefined', async () => {
@@ -280,9 +277,7 @@ describe('StocksService', () => {
   // ============================================
   describe('findAll', () => {
     it('should filter by tenantId and include availableQuantity', async () => {
-      const stocks = [
-        mockStock({ quantity: 50, reservedQuantity: 10 }),
-      ];
+      const stocks = [mockStock({ quantity: 50, reservedQuantity: 10 })];
       const qb = buildQueryBuilder(stocks, 1);
       stocksRepository.createQueryBuilder.mockReturnValue(qb);
 
@@ -535,19 +530,11 @@ describe('StocksService', () => {
       stocksRepository.findOne.mockResolvedValue(stock);
 
       await expect(
-        service.adjust(
-          'stock-1',
-          { quantity: -20, reason: 'X' },
-          'tenant-1',
-        ),
+        service.adjust('stock-1', { quantity: -20, reason: 'X' }, 'tenant-1'),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.adjust(
-          'stock-1',
-          { quantity: -20, reason: 'X' },
-          'tenant-1',
-        ),
+        service.adjust('stock-1', { quantity: -20, reason: 'X' }, 'tenant-1'),
       ).rejects.toThrow('Stock insuficiente. Disponible: 10, ajuste: -20');
     });
 
@@ -614,10 +601,7 @@ describe('StocksService', () => {
 
     it('should throw BadRequestException if same warehouse', async () => {
       await expect(
-        service.transfer(
-          { ...validDto, toWarehouseId: 'wh-1' },
-          'tenant-1',
-        ),
+        service.transfer({ ...validDto, toWarehouseId: 'wh-1' }, 'tenant-1'),
       ).rejects.toThrow('El almacén de origen y destino deben ser diferentes');
     });
 
@@ -636,8 +620,8 @@ describe('StocksService', () => {
 
       const result = await service.transfer(validDto, 'tenant-1');
 
-      expect(fromStock.quantity).toBe(80); // 100 - 20
-      expect(toStock.quantity).toBe(50); // 30 + 20
+      expect(fromStock.quantity).toBe(80);
+      expect(toStock.quantity).toBe(50);
       expect(result.message).toContain('20 unidades');
       expect(result.from).toEqual(fromStock);
       expect(result.to).toEqual(toStock);
@@ -653,7 +637,7 @@ describe('StocksService', () => {
 
       mockManager.findOne
         .mockResolvedValueOnce(fromStock)
-        .mockResolvedValueOnce(null); // no existe destino
+        .mockResolvedValueOnce(null);
 
       mockManager.create.mockReturnValue(newToStock);
       mockManager.save.mockImplementation((data) => Promise.resolve(data));
@@ -683,17 +667,15 @@ describe('StocksService', () => {
     });
 
     it('should throw BadRequestException if insufficient stock in origin', async () => {
-      mockManager.findOne.mockResolvedValue(
-      mockStock({ quantity: 10 }),
-        );
+      mockManager.findOne.mockResolvedValue(mockStock({ quantity: 10 }));
 
-        await expect(
-            service.transfer(validDto, 'tenant-1'),
-        ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.transfer(validDto, 'tenant-1'),
+      ).rejects.toThrow(BadRequestException);
 
-        await expect(
-            service.transfer(validDto, 'tenant-1'),
-        ).rejects.toThrow('Stock insuficiente en origen. Disponible: 10');
+      await expect(
+        service.transfer(validDto, 'tenant-1'),
+      ).rejects.toThrow('Stock insuficiente en origen. Disponible: 10');
     });
 
     it('should use transaction', async () => {
@@ -766,8 +748,8 @@ describe('StocksService', () => {
   describe('getStats', () => {
     it('should return full statistics', async () => {
       stocksRepository.count
-        .mockResolvedValueOnce(20) // total
-        .mockResolvedValueOnce(3); // outOfStock
+        .mockResolvedValueOnce(20)
+        .mockResolvedValueOnce(3);
 
       const totalQtyQb = {
         select: jest.fn().mockReturnThis(),
@@ -832,6 +814,349 @@ describe('StocksService', () => {
       expect(result.lowStockCount).toBe(0);
       expect(result.outOfStockCount).toBe(0);
       expect(result.byWarehouse).toEqual([]);
+    });
+  });
+
+  // ============================================
+  // INITIAL (Carga inicial de inventario) ⭐
+  // ============================================
+  describe('initial', () => {
+    const baseDto = {
+      warehouseId: 'wh-1',
+      reason: 'Carga inicial test',
+      items: [
+        {
+          productId: 'prod-1',
+          quantity: 100,
+          unitCost: 1.5,
+          lotNumber: 'LOTE-1',
+          location: 'A-1-1',
+          estimatedAcquisitionDate: '2024-01-15',
+          notes: 'Sin factura',
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      // Default: warehouse existe
+      warehousesRepository.findOne.mockResolvedValue(mockWarehouse);
+    });
+
+    // ────────────────────────────────────────
+    // 1. Happy path — crea stock nuevo
+    // ────────────────────────────────────────
+    it('should create new stock and movement when stock does not exist', async () => {
+      const mockProductInTx = {
+        id: 'prod-1',
+        name: 'Panel Solar',
+        tenantId: 'tenant-1',
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce(mockProductInTx) // Product
+        .mockResolvedValueOnce(null);            // Stock (no existe)
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      const result = await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      expect(result.created).toBe(1);
+      expect(result.updated).toBe(0);
+      expect(result.movements).toBe(1);
+      expect(result.details).toHaveLength(1);
+      expect(result.details[0].action).toBe('created');
+      expect(result.details[0].stockBefore).toBe(0);
+      expect(result.details[0].stockAfter).toBe(100);
+
+      // Verifica que se creó el Stock
+      expect(mockManager.create).toHaveBeenCalledWith(
+        Stock,
+        expect.objectContaining({
+          tenantId: 'tenant-1',
+          warehouseId: 'wh-1',
+          productId: 'prod-1',
+          quantity: 100,
+          reservedQuantity: 0,
+          minStock: 0,
+          location: 'A-1-1',
+          notes: '[Carga inicial]: Sin factura',
+        }),
+      );
+
+      // Verifica que se creó el Movement
+      expect(mockManager.create).toHaveBeenCalledWith(
+        Movement,
+        expect.objectContaining({
+          tenantId: 'tenant-1',
+          productId: 'prod-1',
+          userId: 'user-1',
+          quantity: 100,
+          stockBefore: 0,
+          stockAfter: 100,
+          referenceType: 'initial_stock',
+        }),
+      );
+    });
+
+    // ────────────────────────────────────────
+    // 2. Actualiza stock existente
+    // ────────────────────────────────────────
+    it('should update existing stock when stock already exists', async () => {
+      const mockProductInTx = {
+        id: 'prod-1',
+        name: 'Panel Solar',
+        tenantId: 'tenant-1',
+      };
+      const existingStock = mockStock({ quantity: 50 });
+
+      mockManager.findOne
+        .mockResolvedValueOnce(mockProductInTx)
+        .mockResolvedValueOnce(existingStock);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      const result = await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      expect(result.created).toBe(0);
+      expect(result.updated).toBe(1);
+      expect(result.details[0].action).toBe('updated');
+      expect(result.details[0].stockBefore).toBe(50);
+      expect(result.details[0].stockAfter).toBe(150);
+      expect(existingStock.quantity).toBe(150);
+    });
+
+    // ────────────────────────────────────────
+    // 3. Actualiza location y notes en stock existente
+    // ────────────────────────────────────────
+    it('should update location and append notes when stock exists', async () => {
+      const mockProductInTx = {
+        id: 'prod-1',
+        name: 'Panel',
+        tenantId: 'tenant-1',
+      };
+      const existingStock = mockStock({
+        quantity: 50,
+        location: 'OLD',
+        notes: 'previo',
+      });
+
+      mockManager.findOne
+        .mockResolvedValueOnce(mockProductInTx)
+        .mockResolvedValueOnce(existingStock);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      expect(existingStock.location).toBe('A-1-1');
+      expect(existingStock.notes).toContain('previo');
+      expect(existingStock.notes).toContain('[Carga inicial]: Sin factura');
+    });
+
+    // ────────────────────────────────────────
+    // 4. Stock existente SIN notes previas
+    // ────────────────────────────────────────
+    it('should set notes on existing stock when previous notes is null', async () => {
+      const mockProductInTx = {
+        id: 'prod-1',
+        name: 'Panel',
+        tenantId: 'tenant-1',
+      };
+      const existingStock = mockStock({ quantity: 10, notes: null });
+
+      mockManager.findOne
+        .mockResolvedValueOnce(mockProductInTx)
+        .mockResolvedValueOnce(existingStock);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      expect(existingStock.notes).toBe('[Carga inicial]: Sin factura');
+    });
+
+    // ────────────────────────────────────────
+    // 5. Item SIN notes (usa default)
+    // ────────────────────────────────────────
+    it('should create stock with default notes when item.notes is not provided', async () => {
+      const dtoSinNotes = {
+        ...baseDto,
+        items: [{ productId: 'prod-1', quantity: 100 }],
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(null);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(dtoSinNotes as any, 'tenant-1', 'user-1');
+
+      expect(mockManager.create).toHaveBeenCalledWith(
+        Stock,
+        expect.objectContaining({
+          notes: '[Carga inicial de inventario]',
+        }),
+      );
+    });
+
+    // ────────────────────────────────────────
+    // 6. Warehouse no existe → NotFound
+    // ────────────────────────────────────────
+    it('should throw NotFoundException if warehouse does not exist', async () => {
+      warehousesRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.initialStock(baseDto as any, 'tenant-1', 'user-1'),
+      ).rejects.toThrow('Almacén no encontrado en tu empresa');
+
+      // No debe abrir transacción
+      expect(mockDataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    // ────────────────────────────────────────
+    // 7. Producto no existe → BadRequest
+    // ────────────────────────────────────────
+    it('should throw BadRequestException if product does not exist', async () => {
+      mockManager.findOne.mockResolvedValueOnce(null); // Product no existe
+
+      await expect(
+        service.initialStock(baseDto as any, 'tenant-1', 'user-1'),
+      ).rejects.toThrow('Producto prod-1 no encontrado en tu empresa');
+    });
+
+    // ────────────────────────────────────────
+    // 8. Múltiples items
+    // ────────────────────────────────────────
+    it('should process multiple items and count created/updated', async () => {
+      const dtoMultiple = {
+        warehouseId: 'wh-1',
+        items: [
+          { productId: 'prod-1', quantity: 100 },
+          { productId: 'prod-2', quantity: 50 },
+          { productId: 'prod-3', quantity: 25 },
+        ],
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'P1' })
+        .mockResolvedValueOnce(mockStock({ quantity: 10 })) // prod-1 existe → update
+        .mockResolvedValueOnce({ id: 'prod-2', name: 'P2' })
+        .mockResolvedValueOnce(null) // prod-2 no existe → create
+        .mockResolvedValueOnce({ id: 'prod-3', name: 'P3' })
+        .mockResolvedValueOnce(null); // prod-3 no existe → create
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      const result = await service.initialStock(
+        dtoMultiple as any,
+        'tenant-1',
+        'user-1',
+      );
+
+      expect(result.created).toBe(2);
+      expect(result.updated).toBe(1);
+      expect(result.movements).toBe(3);
+      expect(result.details).toHaveLength(3);
+    });
+
+    // ────────────────────────────────────────
+    // 9. Movement notes con todos los campos opcionales
+    // ────────────────────────────────────────
+    it('should build movement notes with all optional fields', async () => {
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(null);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      const movementCreateCall = mockManager.create.mock.calls.find(
+        (call: any[]) => call[1]?.type === 'initial',
+      );
+
+      expect(movementCreateCall).toBeDefined();
+      expect(movementCreateCall![1].notes).toContain('Lote: LOTE-1');
+      expect(movementCreateCall![1].notes).toContain(
+        'Fecha estimada: 2024-01-15',
+      );
+      expect(movementCreateCall![1].notes).toContain('Costo estimado: 1.5');
+      expect(movementCreateCall![1].notes).toContain('Notas: Sin factura');
+    });
+
+    // ────────────────────────────────────────
+    // 10. Movement sin reason (usa default)
+    // ────────────────────────────────────────
+    it('should use default reason when dto.reason is not provided', async () => {
+      const dtoSinReason = {
+        warehouseId: 'wh-1',
+        items: [{ productId: 'prod-1', quantity: 10 }],
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(null);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(dtoSinReason as any, 'tenant-1', 'user-1');
+
+      const movementCall = mockManager.create.mock.calls.find(
+        (call: any[]) => call[1]?.type === 'initial',
+      );
+      expect(movementCall![1].reason).toBe(
+        'Carga inicial de inventario (sin proveedor ni factura)',
+      );
+    });
+
+    // ────────────────────────────────────────
+    // 11. Item sin campos opcionales → notes vacías
+    // ────────────────────────────────────────
+    it('should create movement with empty notes when no optional fields provided', async () => {
+      const dtoMinimal = {
+        warehouseId: 'wh-1',
+        items: [{ productId: 'prod-1', quantity: 10 }],
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(null);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(dtoMinimal as any, 'tenant-1', 'user-1');
+
+      const movementCall = mockManager.create.mock.calls.find(
+        (call: any[]) => call[1]?.type === 'initial',
+      );
+      expect(movementCall![1].notes).toBe('');
+    });
+
+    // ────────────────────────────────────────
+    // 12. Stock con quantity null/0 → stockBefore = 0
+    // ────────────────────────────────────────
+    it('should handle stock with null quantity as 0', async () => {
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(mockStock({ quantity: null as any }));
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      const result = await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      expect(result.details[0].stockBefore).toBe(0);
+      expect(result.details[0].stockAfter).toBe(100);
     });
   });
 });

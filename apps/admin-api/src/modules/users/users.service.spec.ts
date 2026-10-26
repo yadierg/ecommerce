@@ -4,8 +4,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 import { UsersService } from './users.service';
-import { User, NotificationType, NotificationPriority } from '@ecommerce/core';
+import { User, Role, NotificationType, NotificationPriority } from '@ecommerce/core';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -22,8 +23,18 @@ const mockUsersRepository = {
   createQueryBuilder: jest.fn(),
 };
 
+const mockRolesRepository = {
+  findOne: jest.fn(),
+  find: jest.fn(),
+};
+
 const mockNotificationsService = {
   notifyAll: jest.fn(),
+  create: jest.fn(),
+};
+
+const mockAuditService = {
+  log: jest.fn(),
 };
 
 // ============================================
@@ -32,20 +43,26 @@ const mockNotificationsService = {
 describe('UsersService', () => {
   let service: UsersService;
   let usersRepository: typeof mockUsersRepository;
+  let rolesRepository: typeof mockRolesRepository;
   let notificationsService: typeof mockNotificationsService;
+  let auditService: typeof mockAuditService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: getRepositoryToken(User), useValue: mockUsersRepository },
+        { provide: getRepositoryToken(Role), useValue: mockRolesRepository },
         { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
     usersRepository = module.get(getRepositoryToken(User));
+    rolesRepository = module.get(getRepositoryToken(Role));
     notificationsService = module.get(NotificationsService);
+    auditService = module.get(AuditService);
   });
 
   afterEach(() => {
@@ -110,7 +127,6 @@ describe('UsersService', () => {
       const result = await service.create(createDto, 'tenant-admin', false);
 
       expect(result.tenantId).toBe('tenant-admin');
-      // El admin normal NO puede especificar otro tenant
       expect(usersRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           tenantId: 'tenant-admin',
@@ -119,15 +135,12 @@ describe('UsersService', () => {
     });
 
     it('should ignore tenantId from dto when admin is not super_admin', async () => {
-      const dtoWithTenant = {
-        ...createDto,
-        tenantId: 'tenant-otro',
-      };
+      const dtoWithTenant = { ...createDto, tenantId: 'tenant-otro' };
 
       const mockUser = {
         id: 'user-1',
         ...dtoWithTenant,
-        tenantId: 'tenant-admin', // Fuerza el tenant del admin
+        tenantId: 'tenant-admin',
         isSuperAdmin: false,
         password: 'hashed',
       };
@@ -139,7 +152,6 @@ describe('UsersService', () => {
 
       await service.create(dtoWithTenant, 'tenant-admin', false);
 
-      // Debe forzar el tenant del admin, NO el del DTO
       expect(usersRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           tenantId: 'tenant-admin',
@@ -148,8 +160,10 @@ describe('UsersService', () => {
     });
 
     it('should throw ConflictException if email already exists', async () => {
-      const existingUser = { id: 'user-1', email: 'new@example.com' };
-      usersRepository.findOne.mockResolvedValue(existingUser);
+      usersRepository.findOne.mockResolvedValue({
+        id: 'user-1',
+        email: 'new@example.com',
+      });
 
       await expect(
         service.create(createDto, 'tenant-1', true),
@@ -160,15 +174,10 @@ describe('UsersService', () => {
     });
 
     it('should throw ConflictException if admin tries to create super_admin', async () => {
-      const superAdminDto = {
-        ...createDto,
-        isSuperAdmin: true,
-      };
-
       usersRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.create(superAdminDto, 'tenant-1', false),
+        service.create({ ...createDto, isSuperAdmin: true }, 'tenant-1', false),
       ).rejects.toThrow('No puedes crear super admins');
     });
 
@@ -204,37 +213,27 @@ describe('UsersService', () => {
   // ============================================
   describe('findAll', () => {
     it('should return all users if isSuperAdmin is true', async () => {
-      const mockUsers = [
-        { id: 'user-1', email: 'a@test.com', tenantId: 'tenant-1' },
-        { id: 'user-2', email: 'b@test.com', tenantId: 'tenant-2' },
-      ];
-
-      usersRepository.find.mockResolvedValue(mockUsers);
+      usersRepository.find.mockResolvedValue([
+        { id: 'user-1', tenantId: 'tenant-1' },
+        { id: 'user-2', tenantId: 'tenant-2' },
+      ]);
 
       const result = await service.findAll('tenant-1', true);
 
       expect(result).toHaveLength(2);
       expect(usersRepository.find).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {}, // Sin filtro de tenant para super admin
-        }),
+        expect.objectContaining({ where: {} }),
       );
     });
 
     it('should return only tenant users if isSuperAdmin is false', async () => {
-      const mockUsers = [
-        { id: 'user-1', email: 'a@test.com', tenantId: 'tenant-1' },
-      ];
-
-      usersRepository.find.mockResolvedValue(mockUsers);
+      usersRepository.find.mockResolvedValue([{ id: 'user-1', tenantId: 'tenant-1' }]);
 
       const result = await service.findAll('tenant-1', false);
 
       expect(result).toHaveLength(1);
       expect(usersRepository.find).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { tenantId: 'tenant-1' },
-        }),
+        expect.objectContaining({ where: { tenantId: 'tenant-1' } }),
       );
     });
 
@@ -257,14 +256,7 @@ describe('UsersService', () => {
   // ============================================
   describe('findOne', () => {
     it('should return user by id', async () => {
-      const mockUser = {
-        id: 'user-1',
-        email: 'test@example.com',
-        name: 'Test User',
-        roles: [],
-        tenant: null,
-      };
-
+      const mockUser = { id: 'user-1', roles: [], tenant: null };
       usersRepository.findOne.mockResolvedValue(mockUser);
 
       const result = await service.findOne('user-1');
@@ -279,9 +271,7 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user not found', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findOne('user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('user-1')).rejects.toThrow(NotFoundException);
       await expect(service.findOne('user-1')).rejects.toThrow(
         'Usuario con ID user-1 no encontrado',
       );
@@ -293,37 +283,29 @@ describe('UsersService', () => {
   // ============================================
   describe('findByEmail', () => {
     it('should return user with password included', async () => {
-      const mockUser = {
-        id: 'user-1',
-        email: 'test@example.com',
-        password: 'hashed',
-        roles: [],
-      };
-
-      const mockQueryBuilder = {
+      const mockUser = { id: 'user-1', email: 'test@example.com', password: 'hashed' };
+      const qb = {
         addSelect: jest.fn().mockReturnThis(),
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(mockUser),
       };
-
-      usersRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      usersRepository.createQueryBuilder.mockReturnValue(qb);
 
       const result = await service.findByEmail('test@example.com');
 
       expect(result).toEqual(mockUser);
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('user.password');
+      expect(qb.addSelect).toHaveBeenCalledWith('user.password');
     });
 
     it('should return null if user not found', async () => {
-      const mockQueryBuilder = {
+      const qb = {
         addSelect: jest.fn().mockReturnThis(),
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(null),
       };
-
-      usersRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      usersRepository.createQueryBuilder.mockReturnValue(qb);
 
       const result = await service.findByEmail('notfound@example.com');
 
@@ -335,23 +317,12 @@ describe('UsersService', () => {
   // UPDATE
   // ============================================
   describe('update', () => {
-    const updateDto: UpdateUserDto = {
-      name: 'Updated Name',
-    };
+    const updateDto: UpdateUserDto = { name: 'Updated Name' };
 
     it('should update user name', async () => {
-      const mockUser = {
-        id: 'user-1',
-        email: 'test@example.com',
-        name: 'Old Name',
-        password: 'hashed',
-      };
-
+      const mockUser = { id: 'user-1', name: 'Old Name', password: 'hashed' };
       usersRepository.findOne.mockResolvedValue(mockUser);
-      usersRepository.save.mockResolvedValue({
-        ...mockUser,
-        name: 'Updated Name',
-      });
+      usersRepository.save.mockResolvedValue({ ...mockUser, name: 'Updated Name' });
 
       const result = await service.update('user-1', updateDto);
 
@@ -360,19 +331,9 @@ describe('UsersService', () => {
     });
 
     it('should throw ConflictException if new email already exists', async () => {
-      const mockUser = {
-        id: 'user-1',
-        email: 'old@example.com',
-        name: 'Test',
-      };
-      const existingUser = {
-        id: 'user-2',
-        email: 'new@example.com',
-      };
-
       usersRepository.findOne
-        .mockResolvedValueOnce(mockUser) // findOne por ID
-        .mockResolvedValueOnce(existingUser); // findOne por email
+        .mockResolvedValueOnce({ id: 'user-1', email: 'old@example.com' })
+        .mockResolvedValueOnce({ id: 'user-2', email: 'new@example.com' });
 
       await expect(
         service.update('user-1', { email: 'new@example.com' }),
@@ -380,18 +341,11 @@ describe('UsersService', () => {
     });
 
     it('should allow updating to same email', async () => {
-      const mockUser = {
-        id: 'user-1',
-        email: 'same@example.com',
-        name: 'Test',
-      };
-
+      const mockUser = { id: 'user-1', email: 'same@example.com' };
       usersRepository.findOne.mockResolvedValue(mockUser);
       usersRepository.save.mockResolvedValue(mockUser);
 
-      const result = await service.update('user-1', {
-        email: 'same@example.com',
-      });
+      const result = await service.update('user-1', { email: 'same@example.com' });
 
       expect(result).toBeDefined();
     });
@@ -402,22 +356,14 @@ describe('UsersService', () => {
   // ============================================
   describe('remove', () => {
     it('should remove user and send notification', async () => {
-      const mockUser = {
-        id: 'user-1',
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
+      const mockUser = { id: 'user-1', name: 'Test User', email: 'test@example.com' };
       usersRepository.findOne.mockResolvedValue(mockUser);
       usersRepository.remove.mockResolvedValue(mockUser);
       notificationsService.notifyAll.mockResolvedValue({});
 
       const result = await service.remove('user-1');
 
-      expect(result).toHaveProperty(
-        'message',
-        'Usuario eliminado correctamente',
-      );
+      expect(result).toHaveProperty('message', 'Usuario eliminado correctamente');
       expect(usersRepository.remove).toHaveBeenCalledWith(mockUser);
       expect(notificationsService.notifyAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -430,9 +376,7 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user not found', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.remove('user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('user-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -441,16 +385,9 @@ describe('UsersService', () => {
   // ============================================
   describe('toggleActive', () => {
     it('should toggle user from active to inactive', async () => {
-      const mockUser = {
-        id: 'user-1',
-        isActive: true,
-      };
-
+      const mockUser = { id: 'user-1', isActive: true };
       usersRepository.findOne.mockResolvedValue(mockUser);
-      usersRepository.save.mockResolvedValue({
-        ...mockUser,
-        isActive: false,
-      });
+      usersRepository.save.mockResolvedValue({ ...mockUser, isActive: false });
 
       const result = await service.toggleActive('user-1');
 
@@ -458,16 +395,9 @@ describe('UsersService', () => {
     });
 
     it('should toggle user from inactive to active', async () => {
-      const mockUser = {
-        id: 'user-1',
-        isActive: false,
-      };
-
+      const mockUser = { id: 'user-1', isActive: false };
       usersRepository.findOne.mockResolvedValue(mockUser);
-      usersRepository.save.mockResolvedValue({
-        ...mockUser,
-        isActive: true,
-      });
+      usersRepository.save.mockResolvedValue({ ...mockUser, isActive: true });
 
       const result = await service.toggleActive('user-1');
 
@@ -476,14 +406,14 @@ describe('UsersService', () => {
   });
 
   // ============================================
-  // GET STATS (Multi-tenant)
+  // GET STATS
   // ============================================
   describe('getStats', () => {
     it('should return global stats for super_admin', async () => {
       usersRepository.count
-        .mockResolvedValueOnce(100) // total
-        .mockResolvedValueOnce(80) // active
-        .mockResolvedValueOnce(10); // admins
+        .mockResolvedValueOnce(100)
+        .mockResolvedValueOnce(80)
+        .mockResolvedValueOnce(10);
 
       const result = await service.getStats('tenant-1', true);
 
@@ -498,9 +428,9 @@ describe('UsersService', () => {
 
     it('should return tenant-only stats for admin', async () => {
       usersRepository.count
-        .mockResolvedValueOnce(15) // total del tenant
-        .mockResolvedValueOnce(12) // activos
-        .mockResolvedValueOnce(3); // admins
+        .mockResolvedValueOnce(15)
+        .mockResolvedValueOnce(12)
+        .mockResolvedValueOnce(3);
 
       const result = await service.getStats('tenant-1', false);
 
@@ -512,10 +442,62 @@ describe('UsersService', () => {
         regularUsers: 12,
       });
       expect(usersRepository.count).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { tenantId: 'tenant-1' },
-        }),
+        expect.objectContaining({ where: { tenantId: 'tenant-1' } }),
       );
+    });
+  });
+
+  // ============================================
+  // ASSIGN ROLE (nuevo)
+  // ============================================
+  describe('assignRole', () => {
+    it('should assign a role successfully', async () => {
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        role: 'user',
+        tenantId: 'tenant-1',
+        roles: [],
+      };
+      const mockRole = { id: 'role-1', name: 'admin' };
+
+      usersRepository.findOne.mockResolvedValue(mockUser);
+      rolesRepository.findOne.mockResolvedValue(mockRole);
+      usersRepository.save.mockResolvedValue({ ...mockUser, role: 'admin' });
+      auditService.log.mockResolvedValue({});
+      notificationsService.create.mockResolvedValue({});
+
+      const result = await service.assignRole('user-1', 'admin', 'admin-1', 'tenant-1', false);
+
+      expect(result.role).toBe('admin');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'assign_role' }),
+      );
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      usersRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.assignRole('user-1', 'admin', 'admin-1', 'tenant-1', false),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if role not found', async () => {
+      usersRepository.findOne.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' });
+      rolesRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.assignRole('user-1', 'inexistente', 'admin-1', 'tenant-1', false),
+      ).rejects.toThrow('El rol "inexistente" no existe');
+    });
+
+    it('should throw ConflictException if admin tries to modify user from another tenant', async () => {
+      usersRepository.findOne.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-2' });
+
+      await expect(
+        service.assignRole('user-1', 'admin', 'admin-1', 'tenant-1', false),
+      ).rejects.toThrow('No puedes modificar usuarios de otros tenants');
     });
   });
 });
