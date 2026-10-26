@@ -1,3 +1,4 @@
+// apps/admin-api/src/modules/units-of-measure/units-of-measure.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -6,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm';
 import { UnitOfMeasure, UnitType, Product } from '@ecommerce/core';
 import { CreateUnitOfMeasureDto } from './dto/create-unit-of-measure.dto';
 import { UpdateUnitOfMeasureDto } from './dto/update-unit-of-measure.dto';
@@ -24,6 +25,16 @@ export class UnitsOfMeasureService {
   ) {}
 
   // ============================================
+  // HELPER: Where para incluir unidades del sistema + tenant
+  // ============================================
+  private buildWhereWithSystem(tenantId: string) {
+    return [
+      { tenantId, isActive: true },
+      { tenantId: IsNull(), isActive: true },
+    ];
+  }
+
+  // ============================================
   // CREATE
   // ============================================
   async create(
@@ -31,14 +42,17 @@ export class UnitsOfMeasureService {
     tenantId: string,
     userId?: string,
   ): Promise<UnitOfMeasure> {
-    // Verificar que no exista la abreviatura en este tenant
+    // Verificar que no exista la abreviatura en este tenant NI en el sistema
     const existing = await this.unitsRepository.findOne({
-      where: { abbreviation: dto.abbreviation, tenantId },
+      where: [
+        { abbreviation: dto.abbreviation, tenantId },
+        { abbreviation: dto.abbreviation, tenantId: IsNull() },
+      ],
     });
 
     if (existing) {
       throw new ConflictException(
-        `La unidad "${dto.abbreviation}" ya existe en tu empresa`,
+        `La unidad "${dto.abbreviation}" ya existe`,
       );
     }
 
@@ -63,7 +77,9 @@ export class UnitsOfMeasureService {
 
     const qb = this.unitsRepository
       .createQueryBuilder('unit')
-      .where('unit.tenantId = :tenantId', { tenantId });
+      .where('(unit.tenantId = :tenantId OR unit.tenantId IS NULL)', {
+        tenantId,
+      });
 
     if (search) {
       qb.andWhere(
@@ -101,7 +117,7 @@ export class UnitsOfMeasureService {
   // ============================================
   async findActive(tenantId: string): Promise<UnitOfMeasure[]> {
     return this.unitsRepository.find({
-      where: { tenantId, isActive: true },
+      where: this.buildWhereWithSystem(tenantId),
       order: { order: 'ASC', name: 'ASC' },
     });
   }
@@ -111,7 +127,10 @@ export class UnitsOfMeasureService {
   // ============================================
   async findByType(tenantId: string, type: UnitType) {
     return this.unitsRepository.find({
-      where: { tenantId, type, isActive: true },
+      where: [
+        { tenantId, type, isActive: true },
+        { tenantId: IsNull(), type, isActive: true },
+      ],
       order: { order: 'ASC', name: 'ASC' },
     });
   }
@@ -121,7 +140,10 @@ export class UnitsOfMeasureService {
   // ============================================
   async findOne(id: string, tenantId: string): Promise<UnitOfMeasure> {
     const unit = await this.unitsRepository.findOne({
-      where: { id, tenantId },
+      where: [
+        { id, tenantId },
+        { id, tenantId: IsNull() },
+      ],
     });
 
     if (!unit) {
@@ -144,6 +166,12 @@ export class UnitsOfMeasureService {
     if (unit.isSystem) {
       throw new BadRequestException(
         'No se pueden editar unidades del sistema',
+      );
+    }
+
+    if (unit.tenantId !== tenantId) {
+      throw new BadRequestException(
+        'No puedes editar unidades de otro tenant',
       );
     }
 
@@ -182,6 +210,12 @@ export class UnitsOfMeasureService {
       );
     }
 
+    if (unit.tenantId !== tenantId) {
+      throw new BadRequestException(
+        'No puedes eliminar unidades de otro tenant',
+      );
+    }
+
     // Verificar que no haya productos usando esta unidad
     const productCount = await this.productsRepository.count({
       where: { unitOfMeasureId: id },
@@ -201,24 +235,46 @@ export class UnitsOfMeasureService {
   // STATS
   // ============================================
   async getStats(tenantId: string) {
-    const total = await this.unitsRepository.count({ where: { tenantId } });
+    // Total: del sistema + del tenant
+    const total = await this.unitsRepository.count({
+      where: [
+        { tenantId },
+        { tenantId: IsNull() },
+      ],
+    });
 
     const active = await this.unitsRepository.count({
-      where: { tenantId, isActive: true },
+      where: [
+        { tenantId, isActive: true },
+        { tenantId: IsNull(), isActive: true },
+      ],
     });
 
     const byType = await this.unitsRepository
       .createQueryBuilder('unit')
       .select('unit.type', 'type')
       .addSelect('COUNT(*)', 'count')
-      .where('unit.tenantId = :tenantId', { tenantId })
+      .where('(unit.tenantId = :tenantId OR unit.tenantId IS NULL)', {
+        tenantId,
+      })
       .groupBy('unit.type')
       .getRawMany();
+
+    // Separar sistema vs custom
+    const system = await this.unitsRepository.count({
+      where: { tenantId: IsNull() },
+    });
+
+    const custom = await this.unitsRepository.count({
+      where: { tenantId },
+    });
 
     return {
       total,
       active,
       inactive: total - active,
+      system,
+      custom,
       byType,
     };
   }
