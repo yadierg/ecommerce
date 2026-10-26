@@ -1,4 +1,3 @@
-// apps/store-api/src/modules/products/dto/create-product.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
@@ -68,6 +67,16 @@ export class CreateProductDto {
   @IsUUID()
   @IsOptional()
   categoryId?: string;
+
+  // ✅ AÑADIR ESTO
+  @ApiProperty({
+    required: false,
+    example: 'uuid-unit-of-measure',
+    description: 'ID de la unidad de medida (ej: m, kg, unit)',
+  })
+  @IsUUID()
+  @IsOptional()
+  unitOfMeasureId?: string;
 
   @ApiProperty({ required: false, example: 'Apple' })
   @IsString()
