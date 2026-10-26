@@ -31,6 +31,7 @@ import {
   Invoice,
   Warranty,
   WarrantyClaim,
+  UnitOfMeasure,
 } from '@ecommerce/core';
 
 export const getDatabaseConfig = (
@@ -73,6 +74,7 @@ export const getDatabaseConfig = (
     Invoice,
     Warranty,
     WarrantyClaim,
+    UnitOfMeasure,
   ],
 
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
