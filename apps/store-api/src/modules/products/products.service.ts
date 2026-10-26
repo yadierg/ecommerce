@@ -83,6 +83,7 @@ export class ProductsService {
       isActive,
       isFeatured,
       inStock,
+      unitOfMeasureId,       // ← AÑADIR
       sortBy = 'createdAt',
       sortOrder = 'DESC',
     } = query;
@@ -103,6 +104,10 @@ export class ProductsService {
 
     if (categoryId) {
       qb.andWhere('product.categoryId = :categoryId', { categoryId });
+    }
+
+    if (unitOfMeasureId) {
+      qb.andWhere('product.unitOfMeasureId = :unitOfMeasureId', { unitOfMeasureId });
     }
 
     if (brand) {

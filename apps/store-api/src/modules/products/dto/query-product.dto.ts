@@ -83,4 +83,12 @@ export class QueryProductDto {
   @IsString()
   @IsOptional()
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
+
+  @ApiProperty({
+    required: false,
+    description: 'Filtrar por unidad de medida',
+  })
+  @IsUUID()
+  @IsOptional()
+  unitOfMeasureId?: string;
 }
