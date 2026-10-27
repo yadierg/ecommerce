@@ -11,6 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ============================================
+  # JOB 1: TEST & COVERAGE
+  # ============================================
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
@@ -52,3 +55,35 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 14
+
+  # ============================================
+  # JOB 2: DEPLOY TO VPS (Solo cuando hay push a main)
+  # ============================================
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    runs-on: ubuntu-latest
+    # 👇 IMPORTANTE: Solo despliega si es un PUSH a la rama MAIN
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 🔐 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 22229 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: 🚀 Deploy via SSH
+        run: |
+          ssh -p 22229 -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            echo "🔄 Iniciando deploy del backend en producción..."
+            cd /var/www/ecommerce
+            
+            # Actualizar a la rama main en el VPS
+            git checkout main
+            git pull origin main
+            
+            # Ejecutar script de despliegue
+            ./deploy.sh
+          EOF
