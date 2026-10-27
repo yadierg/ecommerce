@@ -63,7 +63,6 @@ jobs:
     name: Deploy to VPS
     needs: test
     runs-on: ubuntu-latest
-    # 👇 IMPORTANTE: Solo despliega si es un PUSH a la rama MAIN
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -77,13 +76,7 @@ jobs:
       - name: 🚀 Deploy via SSH
         run: |
           ssh -p 22229 -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            echo "🔄 Iniciando deploy del backend en producción..."
+            echo "🔄 Iniciando deploy del backend..."
             cd /var/www/ecommerce
-            
-            # Actualizar a la rama main en el VPS
-            git checkout main
-            git pull origin main
-            
-            # Ejecutar script de despliegue
             ./deploy.sh
           EOF
