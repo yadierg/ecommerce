@@ -72,3 +72,28 @@ yarn-error.log*
 /playwright-report/
 instelec-server
 instelec-server.pub
+
+# ============================================
+# SECRETS (NEVER commit these)
+# ============================================
+.env.production
+.env.production.*
+.env.*.bak
+.env.*.bak.*
+
+# ============================================
+# BACKUPS
+# ============================================
+backups/
+*.bak
+*.bak.*
+
+# ============================================
+# ACME challenges (Let's Encrypt)
+# ============================================
+nginx/www/
+
+# ============================================
+# Local deploy scripts
+# ============================================
+deploy.sh

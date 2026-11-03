@@ -95,7 +95,7 @@ services:
     expose:
       - "3004"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3004/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3004/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -142,7 +142,7 @@ services:
     expose:
       - "3003"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3003/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -189,7 +189,7 @@ services:
     expose:
       - "3002"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3002/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3002/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -236,7 +236,7 @@ services:
     expose:
       - "3001"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/"]
       interval: 30s
       timeout: 5s
       retries: 3
