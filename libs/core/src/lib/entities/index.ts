@@ -33,3 +33,8 @@ export * from './invoice.entity';
 export * from './warranty.entity';
 export * from './warranty-claim.entity';
 export * from './unit-of-measure.entity';
+export * from './product-type.entity';
+export * from './attribute-definition.entity';
+export * from './product-attribute.entity';
+export * from './material.entity';
+export * from './price-history.entity';
