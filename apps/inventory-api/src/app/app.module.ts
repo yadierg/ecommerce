@@ -21,6 +21,10 @@ import { MovementsModule } from '../modules/movements/movements.module';
 import { SuppliersModule } from '../modules/suppliers/suppliers.module';
 import { PurchaseOrdersModule } from '../modules/purchase-orders/purchase-orders.module';
 import { CronjobsModule } from '../modules/cronjobs/cronjobs.module';
+import { ProductTypesModule } from '../modules/product-types/product-types.module';
+import { AttributeDefinitionsModule } from '../modules/attribute-definitions/attribute-definitions.module';
+import { MaterialsModule } from '../modules/materials/materials.module';
+import { PriceHistoryModule } from '../modules/price-history/price-history.module';
 
 @Module({
   imports: [
@@ -46,8 +50,11 @@ import { CronjobsModule } from '../modules/cronjobs/cronjobs.module';
     MovementsModule,
     SuppliersModule,
     PurchaseOrdersModule,
-
     CronjobsModule,
+    ProductTypesModule,
+    AttributeDefinitionsModule,
+    MaterialsModule,
+    PriceHistoryModule,
   ],
   controllers: [AppController],
   providers: [
