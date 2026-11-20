@@ -1,96 +1,64 @@
-// apps/inventory-api/src/modules/stocks/dto/initial-stock.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsUUID,
-  IsNumber,
-  IsOptional,
-  IsString,
   IsArray,
   ValidateNested,
-  IsDateString,
+  IsUUID,
+  IsInt,
   Min,
-  ArrayMinSize,
+  IsOptional,
+  IsString,
+  IsNumber,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class InitialStockItemDto {
-  @ApiProperty({ description: 'ID del producto' })
+  @ApiProperty()
   @IsUUID()
   productId: string;
 
-  @ApiProperty({ example: 100, description: 'Cantidad inicial' })
-  @IsNumber()
-  @Min(0.01)
+  @ApiProperty({ example: 10, description: 'Cantidad (entero)' })
+  @IsInt()                // 👈 FIX: rechaza decimales
+  @Min(0)
   quantity: number;
 
-  @ApiProperty({
-    required: false,
-    example: 25.5,
-    description: 'Costo unitario estimado (opcional)',
-  })
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  unitCost?: number;
-
-  @ApiProperty({
-    required: false,
-    example: 'Lote A-2024',
-    description: 'Número de lote (si aplica)',
-  })
-  @IsString()
-  @IsOptional()
-  lotNumber?: string;
-
-  @ApiProperty({
-    required: false,
-    example: 'A-1-3',
-    description: 'Ubicación física en el almacén',
-  })
+  @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   location?: string;
 
-  @ApiProperty({
-    required: false,
-    example: '2024-01-15',
-    description: 'Fecha estimada de adquisición',
-  })
-  @IsDateString()
-  @IsOptional()
-  estimatedAcquisitionDate?: string;
-
-  @ApiProperty({
-    required: false,
-    example: 'Producto encontrado en inventario físico sin factura',
-    description: 'Notas adicionales',
-  })
+  @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  lotNumber?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  estimatedAcquisitionDate?: string;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  unitCost?: number;
 }
 
 export class InitialStockDto {
-  @ApiProperty({ description: 'ID del almacén' })
+  @ApiProperty()
   @IsUUID()
   warehouseId: string;
 
-  @ApiProperty({
-    type: [InitialStockItemDto],
-    description: 'Lista de productos a cargar',
-    minItems: 1,
-  })
+  @ApiProperty({ type: [InitialStockItemDto] })
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => InitialStockItemDto)
   items: InitialStockItemDto[];
 
-  @ApiProperty({
-    required: false,
-    example: 'Carga inicial de inventario - Almacén Central',
-    description: 'Motivo/justificación de la carga',
-  })
+  @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   reason?: string;

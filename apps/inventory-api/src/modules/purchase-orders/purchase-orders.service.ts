@@ -80,6 +80,13 @@ export class PurchaseOrdersService {
 
     // Verificar productos
     for (const item of dto.items) {
+      // 👇 VALIDACIÓN CRÍTICA: productId debe existir
+      if (!item.productId) {
+        throw new BadRequestException(
+          'Cada item debe tener un productId válido',
+        );
+      }
+
       const product = await this.productsRepository.findOne({
         where: { id: item.productId, tenantId },
       });
@@ -129,7 +136,7 @@ export class PurchaseOrdersService {
       notes: dto.notes,
       internalReference: dto.internalReference,
       items: dto.items.map((item) => {
-        const product = null; // se rellena abajo
+        // 👇 sin la línea "const product = null"
         return this.poItemRepository.create({
           productId: item.productId,
           quantity: item.quantity,

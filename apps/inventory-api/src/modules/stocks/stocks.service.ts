@@ -473,8 +473,8 @@ export class StocksService {
           },
         });
 
-        const stockBefore = Number(stock?.quantity) || 0;
-        const quantity = Number(item.quantity) || 0;
+        const stockBefore = Math.round(Number(stock?.quantity) || 0);
+        const quantity = Math.round(Number(item.quantity) || 0);  // 👈 FIX: int
         const stockAfter = stockBefore + quantity;
 
         let action: 'created' | 'updated';
@@ -517,7 +517,7 @@ export class StocksService {
           productId: item.productId,
           userId,
           type: MovementType.INITIAL,
-          quantity,
+          quantity,                  // 👈 ya es int
           stockBefore,
           stockAfter,
           referenceType: 'initial_stock',
