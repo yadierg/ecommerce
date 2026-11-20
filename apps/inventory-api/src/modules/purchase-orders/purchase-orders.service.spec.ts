@@ -321,6 +321,63 @@ describe('PurchaseOrdersService', () => {
     });
   });
 
+      // ────────────────────────────────────────
+    // ⭐ REGRESIÓN: productId vacío/undefined no debe matchear el primer producto
+    //     (bug: findOne({ where: { id: undefined } }) devolvía el primer producto)
+    // ────────────────────────────────────────
+    it('should throw BadRequestException if productId is undefined', async () => {
+      suppliersRepository.findOne.mockResolvedValue(mockSupplier);
+      warehousesRepository.findOne.mockResolvedValue(mockWarehouse);
+
+      const dtoWithUndefinedProduct = {
+        supplierId: 'sup-1',
+        warehouseId: 'wh-1',
+        items: [
+          { productId: undefined as any, quantity: 10, unitPrice: 100 },
+        ],
+      };
+
+      await expect(
+        service.create(dtoWithUndefinedProduct, 'tenant-1'),
+      ).rejects.toThrow(BadRequestException);
+
+      // NO debe haber llegado a buscar el producto
+      expect(productsRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if productId is empty string', async () => {
+      suppliersRepository.findOne.mockResolvedValue(mockSupplier);
+      warehousesRepository.findOne.mockResolvedValue(mockWarehouse);
+
+      const dtoWithEmptyProduct = {
+        supplierId: 'sup-1',
+        warehouseId: 'wh-1',
+        items: [{ productId: '', quantity: 10, unitPrice: 100 }],
+      };
+
+      await expect(
+        service.create(dtoWithEmptyProduct, 'tenant-1'),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(productsRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if product does not exist (productId válido pero inexistente)', async () => {
+      suppliersRepository.findOne.mockResolvedValue(mockSupplier);
+      warehousesRepository.findOne.mockResolvedValue(mockWarehouse);
+      productsRepository.findOne.mockResolvedValue(null);
+
+      const dtoWithBadProduct = {
+        supplierId: 'sup-1',
+        warehouseId: 'wh-1',
+        items: [{ productId: 'prod-inexistente', quantity: 10, unitPrice: 100 }],
+      };
+
+      await expect(
+        service.create(dtoWithBadProduct, 'tenant-1'),
+      ).rejects.toThrow(/Producto prod-inexistente no encontrado/);
+    });
+
   // ============================================
   // FIND ALL
   // ============================================

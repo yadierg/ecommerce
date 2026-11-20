@@ -102,6 +102,7 @@ describe('ProductsService', () => {
       ratingCount: 0,
       metaTitle: null,
       metaDescription: null,
+      unitOfMeasureId: null,  // ← AÑADIR ESTA LÍNEA
       createdAt: new Date(),
       updatedAt: new Date(),
       ...overrides,
@@ -211,7 +212,33 @@ describe('ProductsService', () => {
         expect.objectContaining({ slug: 'custom-slug' }),
       );
     });
+
+    // ────────────────────────────────────────
+    // ⭐ REGRESIÓN: unitOfMeasureId se persiste en create
+    // ────────────────────────────────────────
+    it('should persist unitOfMeasureId on create', async () => {
+      setupCreateSuccess();
+
+      await service.create(
+        { ...validDto, unitOfMeasureId: 'unit-uuid-1' },
+        'tenant-1',
+      );
+
+      expect(productsRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ unitOfMeasureId: 'unit-uuid-1' }),
+      );
+    });
+
+    it('should allow create without unitOfMeasureId (optional)', async () => {
+      setupCreateSuccess();
+
+      await service.create(validDto, 'tenant-1');
+
+      expect(productsRepository.create).toHaveBeenCalled();
+    });
   });
+
+
 
   // ============================================
   // FIND ALL
@@ -586,6 +613,41 @@ describe('ProductsService', () => {
         service.update('prod-1', { name: 'X' }, 'tenant-1'),
       ).rejects.toThrow(NotFoundException);
     });
+
+        // ────────────────────────────────────────
+    // ⭐ REGRESIÓN: unitOfMeasureId se persiste en update
+    // ────────────────────────────────────────
+    it('should persist unitOfMeasureId on update', async () => {
+      const product = mockProduct();
+      productsRepository.findOne.mockResolvedValueOnce(product);
+      productsRepository.save.mockImplementation((data) =>
+        Promise.resolve(data),
+      );
+
+      const result = await service.update(
+        'prod-1',
+        { unitOfMeasureId: 'unit-uuid-2' },
+        'tenant-1',
+      );
+
+      expect(result.unitOfMeasureId).toBe('unit-uuid-2');
+    });
+
+    it('should allow update with unitOfMeasureId = null', async () => {
+      const product = mockProduct({ unitOfMeasureId: 'unit-uuid-1' });
+      productsRepository.findOne.mockResolvedValueOnce(product);
+      productsRepository.save.mockImplementation((data) =>
+        Promise.resolve(data),
+      );
+
+      const result = await service.update(
+        'prod-1',
+        { unitOfMeasureId: null },
+        'tenant-1',
+      );
+
+      expect(result.unitOfMeasureId).toBeNull();
+    });
   });
 
   // ============================================
@@ -771,6 +833,6 @@ describe('ProductsService', () => {
       const result = await service.getBrands('tenant-1');
 
       expect(result).toEqual([]);
-    });
+    }); 
   });
 });

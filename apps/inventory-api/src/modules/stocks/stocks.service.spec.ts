@@ -1158,5 +1158,75 @@ describe('StocksService', () => {
       expect(result.details[0].stockBefore).toBe(0);
       expect(result.details[0].stockAfter).toBe(100);
     });
+
+    // ────────────────────────────────────────
+    // 13. ⭐ REGRESIÓN: quantity decimal se redondea a entero
+    //     (bug: invalid input syntax for type integer: "5.01")
+    // ────────────────────────────────────────
+    it('should round decimal quantity to integer (regression: 5.01 → 5)', async () => {
+      const dtoDecimal = {
+        warehouseId: 'wh-1',
+        items: [{ productId: 'prod-1', quantity: 5.01 }],
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(null);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      const result = await service.initialStock(
+        dtoDecimal as any,
+        'tenant-1',
+        'user-1',
+      );
+
+      expect(result.details[0].quantity).toBe(5); // Math.round(5.01)
+      expect(result.details[0].stockAfter).toBe(5);
+    });
+
+    // ────────────────────────────────────────
+    // 14. ⭐ REGRESIÓN: stockBefore decimal se redondea a entero
+    // ────────────────────────────────────────
+    it('should round decimal stockBefore to integer (regression: 50.7 → 51)', async () => {
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(mockStock({ quantity: 50.7 as any }));
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      const result = await service.initialStock(baseDto as any, 'tenant-1', 'user-1');
+
+      expect(result.details[0].stockBefore).toBe(51); // Math.round(50.7)
+      expect(result.details[0].stockAfter).toBe(151); // 51 + 100
+    });
+
+    // ────────────────────────────────────────
+    // 15. ⭐ REGRESIÓN: movement.quantity es entero (no decimal)
+    // ────────────────────────────────────────
+    it('should create movement with integer quantity when input is decimal', async () => {
+      const dtoDecimal = {
+        warehouseId: 'wh-1',
+        items: [{ productId: 'prod-1', quantity: 7.89 }],
+      };
+
+      mockManager.findOne
+        .mockResolvedValueOnce({ id: 'prod-1', name: 'Panel' })
+        .mockResolvedValueOnce(null);
+
+      mockManager.create.mockImplementation((_entity: any, data: any) => data);
+      mockManager.save.mockImplementation((data: any) => Promise.resolve(data));
+
+      await service.initialStock(dtoDecimal as any, 'tenant-1', 'user-1');
+
+      const movementCall = mockManager.create.mock.calls.find(
+        (call: any[]) => call[1]?.type === 'initial',
+      );
+      expect(movementCall).toBeDefined();
+      expect(movementCall![1].quantity).toBe(8); // Math.round(7.89)
+      expect(Number.isInteger(movementCall![1].quantity)).toBe(true);
+    });
   });
 });
